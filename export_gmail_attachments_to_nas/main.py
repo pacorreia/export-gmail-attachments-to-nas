@@ -1,12 +1,13 @@
+import os
+import sys
+import json
 import time
 import signal
-import os
-import json
-import sys
 import argparse
-from logging_config import configure_logging
-from gmail_service import authenticate_gmail, process_emails, get_last_run_timestamp, update_last_run_timestamp
-from shared import exit_requested
+
+from .logging_config import configure_logging
+from .gmail_service import authenticate_gmail, process_emails, get_last_run_timestamp, update_last_run_timestamp
+from .shared import exit_requested
 
 script_logger = configure_logging()
 
@@ -48,6 +49,8 @@ def main():
         script_logger.error(f"Error loading criteria.json: {e}")
         sys.exit(1)
 
+    from .gmail_service import authenticate_gmail, process_emails, get_last_run_timestamp, update_last_run_timestamp
+    
     while not exit_requested:
         try:
             last_run = get_last_run_timestamp(criteria_data)

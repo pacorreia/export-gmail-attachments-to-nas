@@ -3,8 +3,8 @@ import re
 import smbclient
 import pymupdf
 from retry import retry
-from logging_config import configure_logging
-from shared import exit_requested
+from .logging_config import configure_logging
+from .shared import exit_requested
 
 script_logger = configure_logging()
 

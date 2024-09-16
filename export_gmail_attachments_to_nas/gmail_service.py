@@ -2,7 +2,7 @@ import base64
 import json
 import os
 import threading
-from logging_config import configure_logging
+from .logging_config import configure_logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from email import message_from_bytes
@@ -14,8 +14,8 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from retry import retry
 
-from file_utils import sanitize_filename, save_attachment, extract_email_address
-from shared import exit_requested
+from .file_utils import sanitize_filename, save_attachment, extract_email_address
+from .shared import exit_requested
 
 # Configure logger
 script_logger = configure_logging()

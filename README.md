@@ -17,6 +17,12 @@ cd email-extraction
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Build the package
+python -m build
+
+# Install the package
+pip install .
 ```
 
 ## Usage
