@@ -1,82 +1,175 @@
-from unittest.mock import patch, MagicMock
-from threading import Event
-from datetime import datetime
-import base64
-from export_gmail_attachments_to_nas.gmail_service import process_emails, script_logger
+from dateutil import parser as date_parser
+from unittest.mock import Mock, patch
+from export_gmail_attachments_to_nas.gmail_service import process_emails, fetch_messages
 
-from unittest.mock import patch, MagicMock
-from threading import Event
-from datetime import datetime
-import base64
-from export_gmail_attachments_to_nas.gmail_service import process_emails, script_logger
-
-@patch.object(script_logger, 'info')
+@patch('export_gmail_attachments_to_nas.gmail_service.script_logger', Mock())
+@patch('export_gmail_attachments_to_nas.gmail_service.fetch_messages')
 @patch('export_gmail_attachments_to_nas.gmail_service.process_email')
-@patch('export_gmail_attachments_to_nas.gmail_service.build')
-@patch('export_gmail_attachments_to_nas.gmail_service.authenticate_gmail')
-def test_process_multiple_emails(mock_get_authenticated_service, mock_build, mock_process_email, mock_info):
-    service = MagicMock()
-    since_date = datetime(2021, 1, 1)
-    username = 'test_user'
-    password = 'test_password'
-    criteria_data = {
-        'smb_server': 'test_smb_server',
-        'smb_folder': 'test_smb_folder',
-        'filters': ['.pdf'],
-        'criteria': [{'enabled': True, 'query': 'some_query', 'smb_folder': 'test_smb_folder', 'filters': ['.pdf'], 'attachment_content_filter': []}]
-    }
-    exit_event = Event()
-
-    # Mock the Gmail API service
-    mock_service = MagicMock()
-    mock_build.return_value = mock_service
-    mock_get_authenticated_service.return_value = mock_service
-
-    # Mock the list_messages function to return a list of message IDs
-    mock_service.users().messages().list.return_value.execute.return_value = {
-        'messages': [{'id': 'msg_id_1'}, {'id': 'msg_id_2'}, {'id': 'msg_id_3'}],
-        'nextPageToken': None
-    }
-
-    # Mock the get_message function to return a mock message
-    mock_service.users().messages().get.return_value.execute.return_value = {
-        'raw': base64.urlsafe_b64encode(b'Test email content').decode('ASCII')
-    }
-
-    # Mock the process_email function to simulate processing
+def test_process_emails(mock_process_email, mock_fetch_messages):
+    # Mock the service
+    mock_service = Mock()
+    
+    # Mock the exit event
+    mock_exit_event = Mock()
+    mock_exit_event.is_set.return_value = False
+    
+    # Mock the fetch_messages function
+    mock_fetch_messages.return_value = [{'id': 'test_msg_id'}]
+    
+    # Mock the process_email function
     mock_process_email.return_value = None
+    
+    # Define criteria data
+    criteria_data = {
+        'criteria': [
+            {
+                'enabled': True,
+                'query': 'test_query',
+                'smb_folder': 'test_folder',
+                'filters': [],
+                'attachment_content_filter': []
+            }
+        ],
+        'smb_server': 'test_server'
+    }
+    
+    # Call the function
+    process_emails(mock_service, date_parser.parse('2023-01-01T00:00:00Z'), 'username', 'password', criteria_data, mock_exit_event)
+    
+    # Assertions
+    mock_fetch_messages.assert_called_once_with(mock_service, 'after:1672531200 test_query', mock_exit_event)
+    mock_process_email.assert_called_once_with(mock_service, 'test_msg_id', 'test_server', 'test_folder', [], 'username', 'password', mock_exit_event, [])
 
-    process_emails(service, since_date, username, password, criteria_data, exit_event)
+def test_fetch_messages():
+    # Mock the service
+    mock_service = Mock()
+    mock_service.users().messages().list().execute.side_effect = [
+        {'messages': [{'id': 'msg1'}], 'nextPageToken': 'token'},
+        {'messages': [{'id': 'msg2'}], 'nextPageToken': None}
+    ]
+    
+    # Mock the exit event
+    mock_exit_event = Mock()
+    mock_exit_event.is_set.return_value = False
+    
+    # Call the function
+    messages = fetch_messages(mock_service, 'test_query', mock_exit_event)
+    
+    # Assertions
+    assert len(messages) == 2
+    assert messages[0]['id'] == 'msg1'
+    assert messages[1]['id'] == 'msg2'
+    
+@patch('export_gmail_attachments_to_nas.gmail_service.script_logger')
+def test_fetch_messages_exception(mock_script_logger):
+    # Mock the service
+    mock_service = Mock()
+    mock_service.users().messages().list().execute.side_effect = Exception("Test exception")
+    
+    # Mock the exit event
+    mock_exit_event = Mock()
+    mock_exit_event.is_set.return_value = False
+    
+    # Call the function
+    messages = fetch_messages(mock_service, 'test_query', mock_exit_event)
+    
+    # Assertions
+    assert len(messages) == 0
+    mock_script_logger.error.assert_called_with("Failed to fetch messages: Test exception")
+    
+@patch('export_gmail_attachments_to_nas.gmail_service.script_logger')
+def test_process_emails_timestamp_exception(mock_script_logger):
+    # Mock the service
+    mock_service = Mock()
+    
+    # Mock the exit event
+    mock_exit_event = Mock()
+    mock_exit_event.is_set.return_value = False
+    
+    # Mock the since_date to raise an exception
+    mock_since_date = Mock()
+    mock_since_date.timestamp.side_effect = Exception("Test exception")
+    
+    # Define criteria data
+    criteria_data = {
+        'criteria': [],
+        'smb_server': 'test_server'
+    }
+    
+    # Call the function
+    process_emails(mock_service, mock_since_date, 'username', 'password', criteria_data, mock_exit_event)
+    
+    # Assertions
+    mock_script_logger.error.assert_called_with("Error converting since_date to timestamp: Test exception")
 
-    # Ensure that list_messages was called with the correct arguments
-    mock_service.users().messages().list.assert_called_once_with(userId='me', q='after:1609459200 some_query', pageToken=None)
+@patch('export_gmail_attachments_to_nas.gmail_service.script_logger')
+def test_process_emails_exit_event_set(mock_script_logger):
+    # Mock the service
+    mock_service = Mock()
+    
+    # Mock the exit event
+    mock_exit_event = Mock()
+    mock_exit_event.is_set.return_value = True
+    
+    # Define criteria data
+    criteria_data = {
+        'criteria': [{'enabled': True, 'query': 'test_query', 'smb_folder': 'test_folder'}],
+        'smb_server': 'test_server'
+    }
+    
+    # Call the function
+    process_emails(mock_service, date_parser.parse('2023-01-01T00:00:00Z'), 'username', 'password', criteria_data, mock_exit_event)
+    
+    # Assertions
+    mock_script_logger.info.assert_called_with("Exit requested. Stopping email processing.")
+    
+@patch('export_gmail_attachments_to_nas.gmail_service.script_logger')
+def test_process_emails_criterion_disabled(mock_script_logger):
+    # Mock the service
+    mock_service = Mock()
+    
+    # Mock the exit event
+    mock_exit_event = Mock()
+    mock_exit_event.is_set.return_value = False
+    
+    # Define criteria data with one disabled criterion
+    criteria_data = {
+        'criteria': [
+            {'enabled': False, 'query': 'test_query', 'smb_folder': 'test_folder'}
+        ],
+        'smb_server': 'test_server'
+    }
+    
+    # Call the function
+    process_emails(mock_service, date_parser.parse('2023-01-01T00:00:00Z'), 'username', 'password', criteria_data, mock_exit_event)
+    
+    # Assertions
+    mock_script_logger.info.assert_called_with("Processing emails since: 2023-01-01 00:00:00+00:00")
+    mock_service.users().messages().list.assert_not_called()
 
-    # Ensure that get_message was called for each message ID
-    assert mock_service.users().messages().get.call_count == 3
-    for msg_id in ['msg_id_1', 'msg_id_2', 'msg_id_3']:
-        mock_service.users().messages().get.assert_any_call(userId='me', id=msg_id)
-
-    # Ensure that process_email was called for each message
-    assert mock_process_email.call_count == 3
-    for msg_id in ['msg_id_1', 'msg_id_2', 'msg_id_3']:
-        mock_process_email.assert_any_call(service, msg_id, 'test_smb_server', 'test_smb_folder', ['.pdf'], username, password, exit_event, [])
-
-
-
-@patch.object(script_logger, 'info')
-def test_no_emails_to_process(mock_info):
-    service = MagicMock()
-    msg_ids = []
-    smb_server = 'test_smb_server'
-    smb_folder = 'test_smb_folder'
-    filters = ['.pdf']
-    username = 'test_user'
-    password = 'test_password'
-    exit_event = Event()
-
-    # Mock the process_email function to simulate processing
-    with patch('export_gmail_attachments_to_nas.gmail_service.process_email') as mock_process_email:
-        process_emails(service, msg_ids, smb_server, smb_folder, filters, username, password, exit_event)
-
-        # Ensure that process_email was not called
-        mock_process_email.assert_not_called()
+@patch('export_gmail_attachments_to_nas.gmail_service.script_logger')
+@patch('export_gmail_attachments_to_nas.gmail_service.process_email')
+def test_process_emails_exception_in_executor(mock_process_email, mock_script_logger):
+    # Mock the service
+    mock_service = Mock()
+    mock_service.users().messages().list().execute.return_value = {'messages': [{'id': 'test_msg_id'}]}
+    
+    # Mock the exit event
+    mock_exit_event = Mock()
+    mock_exit_event.is_set.return_value = False
+    
+    # Mock the process_email to raise an exception
+    mock_process_email.side_effect = Exception("Test exception")
+    
+    # Define criteria data
+    criteria_data = {
+        'criteria': [{'enabled': True, 'query': 'test_query', 'smb_folder': 'test_folder'}],
+        'smb_server': 'test_server'
+    }
+    
+    # Call the function
+    process_emails(mock_service, date_parser.parse('2023-01-01T00:00:00Z'), 'username', 'password', criteria_data, mock_exit_event)
+    
+    # Assertions
+    mock_script_logger.error.assert_called_with("Error processing email: Test exception")
+    mock_exit_event.is_set.assert_called()

@@ -2,6 +2,7 @@ from unittest.mock import patch, MagicMock
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from threading import Event
+from datetime import datetime
 from base64 import urlsafe_b64encode
 from export_gmail_attachments_to_nas.gmail_service import process_emails,process_email, script_logger
     
@@ -73,27 +74,3 @@ def test_exit_event_set_with_multipart_message(mock_info):
 
     # Ensure that none of the mocked functions are called
     service.users().messages().get().execute.assert_called_once()
-    
-@patch.object(script_logger, 'info')
-def test_exit_event_stops_processing(mock_info):
-    service = MagicMock()
-    msg_ids = ['msg_id_1', 'msg_id_2', 'msg_id_3']
-    smb_server = 'test_smb_server'
-    smb_folder = 'test_smb_folder'
-    filters = ['.pdf']
-    username = 'test_user'
-    password = 'test_password'
-    exit_event = Event()
-
-    # Mock the process_email function to simulate processing
-    with patch('export_gmail_attachments_to_nas.gmail_service.process_email') as mock_process_email:
-        # Set the exit event after the first call
-        def side_effect(*args, **kwargs):
-            exit_event.set()
-        mock_process_email.side_effect = side_effect
-
-        process_emails(service, msg_ids, smb_server, smb_folder, filters, username, password, exit_event)
-
-        # Ensure that process_email was called only once
-        assert mock_process_email.call_count == 1
-        mock_process_email.assert_called_once_with(service, 'msg_id_1', smb_server, smb_folder, filters, username, password, exit_event)

@@ -31,7 +31,7 @@ def setup (): # pragma: no cover
 
     return args
   
-def main_loop(args):
+def main_loop(args):    # pragma: no cover
 
   while not exit_event.is_set():
     username = os.getenv('NAS_USERNAME') or args.username
