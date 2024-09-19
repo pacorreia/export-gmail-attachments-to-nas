@@ -2,12 +2,14 @@ import base64
 import json
 import os
 import threading
+import time
 from .logging_config import configure_logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from email import message_from_bytes
 from email.header import decode_header, make_header
 from dateutil import parser as date_parser
+from googleapiclient.errors import HttpError
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -15,7 +17,6 @@ from googleapiclient.discovery import build
 from retry import retry
 
 from .file_utils import sanitize_filename, save_attachment, extract_email_address
-from .shared import exit_requested
 
 # Configure logger
 script_logger = configure_logging()
@@ -54,8 +55,28 @@ def authenticate_gmail(credential_path):
     service = build('gmail', 'v1', credentials=creds)
     return service
 
-def process_email(service, msg_id, smb_server, smb_folder, filters, username, password, content_filters=None):
-    global exit_requested
+def fetch_messages(service, query, exit_event):
+    messages = []
+    next_page_token = None
+    while True:
+        if exit_event.is_set():
+            script_logger.info("Exit requested. Stopping email fetching.")
+            return messages
+        try:
+            results = service.users().messages().list(userId='me', q=query, pageToken=next_page_token).execute()
+        except Exception as e:
+            script_logger.error(f"Failed to fetch messages: {e}")
+            break
+        messages.extend(results.get('messages', []))
+        next_page_token = results.get('nextPageToken')
+        if not next_page_token:
+            break
+    return messages
+
+def process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, content_filters=None):
+    if exit_event.is_set():
+        script_logger.info("Exit requested. Stopping email processing.")
+        return
     with gmail_lock:
         msg_data = service.users().messages().get(userId='me', id=msg_id, format='raw').execute()
     msg_bytes = base64.urlsafe_b64decode(msg_data['raw'].encode('ASCII'))
@@ -73,7 +94,7 @@ def process_email(service, msg_id, smb_server, smb_folder, filters, username, pa
         hierarchical_folder = os.path.join(f"\\\\{smb_server}", smb_folder, sender_email, str(year), str(month), str(day))
 
         for part in msg.walk():
-            if exit_requested:
+            if exit_event.is_set():
                 script_logger.info("Exit requested. Stopping email processing.")
                 return
             if part.get_content_maintype() == 'multipart':
@@ -90,8 +111,7 @@ def process_email(service, msg_id, smb_server, smb_folder, filters, username, pa
                     except Exception as e:
                         script_logger.error(f"Failed to save attachment {filename}: {e}")
 
-def process_emails(service, since_date, username, password, criteria_data):
-    global exit_requested
+def process_emails(service, since_date, username, password, criteria_data, exit_event):
     script_logger.info(f"Processing emails since: {since_date}")
     try:
         timestamp = int(since_date.timestamp())
@@ -106,7 +126,7 @@ def process_emails(service, since_date, username, password, criteria_data):
     messages_with_smb_folder = []
 
     for criterion in criteria:
-        if exit_requested:
+        if exit_event.is_set():
             script_logger.info("Exit requested. Stopping email processing.")
             return
         if not criterion.get('enabled', True):
@@ -118,32 +138,21 @@ def process_emails(service, since_date, username, password, criteria_data):
         full_query = f'{base_query} {query}'
         script_logger.info(f"Query: {full_query}")
 
-        messages = []
-        next_page_token = None
-
-        while True:
-            if exit_requested:
-                script_logger.info("Exit requested. Stopping email processing.")
-                return
-            try:
-                results = service.users().messages().list(userId='me', q=full_query, pageToken=next_page_token).execute()
-            except Exception as e:
-                script_logger.error(f"Failed to fetch messages: {e}")
-                break
-            messages.extend(results.get('messages', []))
-            next_page_token = results.get('nextPageToken')
-            if not next_page_token:
-                break
-
+        messages = fetch_messages(service, full_query, exit_event)
         script_logger.info(f"Total messages retrieved for query '{query}': {len(messages)}")
 
         for msg in messages:
             messages_with_smb_folder.append((msg['id'], smb_folder, filters, content_filters))
 
-    with ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [executor.submit(process_email, service, msg_id, smb_server, smb_folder, filters, username, password, content_filters) for msg_id, smb_folder, filters, content_filters in messages_with_smb_folder]
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        futures = [executor.submit(process_email, service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, content_filters) for msg_id, smb_folder, filters, content_filters in messages_with_smb_folder]
         for future in as_completed(futures):
             try:
+                if exit_event.is_set(): #pragma: no cover
+                    script_logger.info("Exit requested. Stopping email processing.")
+                    return
                 future.result()
             except Exception as e:
                 script_logger.error(f"Error processing email: {e}")
+                if exit_event.is_set(): #pragma: no cover
+                    return

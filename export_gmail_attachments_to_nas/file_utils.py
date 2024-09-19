@@ -1,10 +1,11 @@
 import os
 import re
 import smbclient
+from smbprotocol import exceptions as smb_exceptions
 import pymupdf
 from retry import retry
+from .main import exit_event
 from .logging_config import configure_logging
-from .shared import exit_requested
 
 script_logger = configure_logging()
 
@@ -22,7 +23,7 @@ def extract_text_from_pdf(file_data):
         pdf_document = pymupdf.Document(stream=file_data, filetype="pdf")
         text = ""
         for page_num in range(pdf_document.page_count):
-            if exit_requested:
+            if exit_event.is_set():
                 break
             page = pdf_document.load_page(page_num)
             text += page.get_text()
@@ -40,8 +41,6 @@ def save_attachment(smb_server, smb_folder, filename, file_data, username, passw
         if content_filters:
             if filename.lower().endswith('.pdf'):
                 decoded_content = extract_text_from_pdf(file_data)
-                if exit_requested:
-                    return
             else:
                 decoded_content = file_data.decode('utf-8', errors='ignore')
             
@@ -55,7 +54,7 @@ def save_attachment(smb_server, smb_folder, filename, file_data, username, passw
             smbclient.stat(file_path)
             script_logger.info(f"File already exists, skipping: {filename}")
             return
-        except smbclient.SMBClientException:
+        except smb_exceptions.SMBOSError:
             pass
 
         with smbclient.open_file(file_path, mode='wb') as file:

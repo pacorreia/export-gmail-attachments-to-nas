@@ -1,6 +1,6 @@
 import logging
 
-def configure_logging():
+def configure_logging():  # pragma: no cover
     script_logger = logging.getLogger(__name__)
     if not script_logger.hasHandlers():
         script_logger.setLevel(logging.INFO)
@@ -11,7 +11,7 @@ def configure_logging():
 
         # Set specific logging levels for each library
         logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
-        logging.getLogger('smbclient').setLevel(logging.WARNING)
+        logging.getLogger('smbprotocol').setLevel(logging.WARNING)
         logging.getLogger('retry').setLevel(logging.ERROR)
 
     return script_logger
