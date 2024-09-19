@@ -108,8 +108,18 @@ def process_email(service, msg_id, smb_server, smb_folder, filters, username, pa
                     file_data = part.get_payload(decode=True)
                     try:
                         save_attachment(smb_server, hierarchical_folder, filename, file_data, username, password, content_filters)
+                        script_logger.info(f"Saved attachment to {hierarchical_folder}\\{filename}")
+                        attachment_saved = True  # pragma: no cover
                     except Exception as e:
                         script_logger.error(f"Failed to save attachment {filename}: {e}")
+                        attachment_saved = False  # pragma: no cover
+
+        if attachment_saved:
+            try:
+                service.users().messages().delete(userId='me', id=msg_id).execute()
+                script_logger.info(f"Deleted email with ID: {msg_id}")
+            except Exception as e:
+                script_logger.error(f"Failed to delete email with ID: {msg_id}, error: {e}")
 
 def process_emails(service, since_date, username, password, criteria_data, exit_event):
     script_logger.info(f"Processing emails since: {since_date}")
