@@ -9,5 +9,5 @@ pymupdf==1.25.4
 build==1.2.2.post1
 twine==6.1.0
 bumpversion==0.6.0
-pytest==8.3.5
+pytest==8.4.0
 pytest-cov==6.0.0
