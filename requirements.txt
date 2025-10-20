@@ -1,7 +1,7 @@
 google-auth==2.41.1
 google-auth-oauthlib==1.2.2
 google-auth-httplib2==0.2.0
-google-api-python-client==2.184.0
+google-api-python-client==2.185.0
 smbprotocol==1.15.0
 python-dateutil==2.9.0.post0
 retry==0.9.2
