@@ -138,3 +138,82 @@ def test_save_attachment_exception(mock_logger_error, mock_save_attachment, mock
 
     # Check that the error log was called with the expected message
     mock_logger_error.assert_called_with("Failed to save attachment test.pdf: Test exception")
+
+@patch('export_gmail_attachments_to_nas.gmail_service.base64.urlsafe_b64decode')
+@patch('export_gmail_attachments_to_nas.gmail_service.message_from_bytes')
+@patch('export_gmail_attachments_to_nas.gmail_service.date_parser.parse')
+@patch('export_gmail_attachments_to_nas.gmail_service.sanitize_filename')
+@patch('export_gmail_attachments_to_nas.gmail_service.extract_email_address')
+@patch('export_gmail_attachments_to_nas.gmail_service.save_attachment')
+def test_delete_after_save_true_deletes_email(mock_save_attachment, mock_extract_email_address, mock_sanitize_filename, mock_date_parser, mock_message_from_bytes, mock_b64decode):
+    service = MagicMock()
+    msg_id = 'test_msg_id'
+    smb_server = 'test_smb_server'
+    smb_folder = 'test_smb_folder'
+    filters = ['.pdf']
+    username = 'test_user'
+    password = 'test_password'
+    exit_event = Event()
+
+    msg = EmailMessage()
+    msg.set_payload('This is a test email with attachments.')
+    msg['subject'] = 'Test Subject'
+    msg['Date'] = 'Mon, 01 Jan 2021 00:00:00 -0000'
+    msg.add_attachment(b'This is a test PDF attachment.', maintype='application', subtype='pdf', filename='test.pdf')
+    mock_message_from_bytes.return_value = msg
+    mock_date_parser.return_value = datetime(2021, 1, 1, 0, 0, 0)
+    mock_sanitize_filename.side_effect = lambda x: x
+
+    process_email(
+        service,
+        msg_id,
+        smb_server,
+        smb_folder,
+        filters,
+        username,
+        password,
+        exit_event,
+        delete_after_save=True,
+    )
+
+    service.users().messages().delete.assert_called_once_with(userId='me', id=msg_id)
+    service.users().messages().delete().execute.assert_called_once()
+
+@patch('export_gmail_attachments_to_nas.gmail_service.base64.urlsafe_b64decode')
+@patch('export_gmail_attachments_to_nas.gmail_service.message_from_bytes')
+@patch('export_gmail_attachments_to_nas.gmail_service.date_parser.parse')
+@patch('export_gmail_attachments_to_nas.gmail_service.sanitize_filename')
+@patch('export_gmail_attachments_to_nas.gmail_service.extract_email_address')
+@patch('export_gmail_attachments_to_nas.gmail_service.save_attachment')
+def test_delete_after_save_false_skips_delete(mock_save_attachment, mock_extract_email_address, mock_sanitize_filename, mock_date_parser, mock_message_from_bytes, mock_b64decode):
+    service = MagicMock()
+    msg_id = 'test_msg_id'
+    smb_server = 'test_smb_server'
+    smb_folder = 'test_smb_folder'
+    filters = ['.pdf']
+    username = 'test_user'
+    password = 'test_password'
+    exit_event = Event()
+
+    msg = EmailMessage()
+    msg.set_payload('This is a test email with attachments.')
+    msg['subject'] = 'Test Subject'
+    msg['Date'] = 'Mon, 01 Jan 2021 00:00:00 -0000'
+    msg.add_attachment(b'This is a test PDF attachment.', maintype='application', subtype='pdf', filename='test.pdf')
+    mock_message_from_bytes.return_value = msg
+    mock_date_parser.return_value = datetime(2021, 1, 1, 0, 0, 0)
+    mock_sanitize_filename.side_effect = lambda x: x
+
+    process_email(
+        service,
+        msg_id,
+        smb_server,
+        smb_folder,
+        filters,
+        username,
+        password,
+        exit_event,
+        delete_after_save=False,
+    )
+
+    service.users().messages().delete.assert_not_called()
