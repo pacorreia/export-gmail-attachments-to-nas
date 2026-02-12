@@ -56,6 +56,56 @@ jobs:
           recreate: true
           path: code-coverage-results.md
 
+      - name: Update Coverage Badge
+        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: |
+          python3 << 'EOF'
+          import xml.etree.ElementTree as ET
+          import re
+          
+          # Parse coverage.xml to extract line coverage percentage
+          tree = ET.parse('./coverage.xml')
+          root = tree.getroot()
+          
+          # Get line-rate from the root element (overall coverage)
+          line_rate = float(root.get('line-rate', 0))
+          coverage_percent = int(line_rate * 100)
+          
+          # Determine badge color based on coverage
+          if coverage_percent >= 80:
+              color = 'success'
+          elif coverage_percent >= 60:
+              color = 'yellow'
+          else:
+              color = 'critical'
+          
+          # Read the HTML file
+          with open('docs/index.html', 'r') as f:
+              content = f.read()
+          
+          # Update the badge URL with actual coverage percentage
+          new_badge = f'https://img.shields.io/badge/Code%20Coverage-{coverage_percent}%25-{color}?style=flat'
+          content = re.sub(
+              r'https://img\.shields\.io/badge/Code%20Coverage-\d+%25-\w+\?style=flat',
+              new_badge,
+              content
+          )
+          
+          # Write back the updated HTML
+          with open('docs/index.html', 'w') as f:
+              f.write(content)
+          
+          print(f"Updated coverage badge to {coverage_percent}%")
+          EOF
+
+      - name: Commit and Push Coverage Badge Update
+        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs/index.html
+          git diff --staged --exit-code || (git commit -m "Update coverage badge to reflect test results" && git push)
+
   lint:
     runs-on: ubuntu-latest
     steps:
