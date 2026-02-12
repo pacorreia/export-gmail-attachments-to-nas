@@ -29,6 +29,10 @@ jobs:
           pip install -r requirements.txt
           pip install -e .
 
+      - name: Run tests with pytest
+        run: |
+          pytest tests/ -v --cov=export_gmail_attachments_to_nas --cov-report=xml --cov-report=term
+
       - name: Upload coverage to Codecov
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4
