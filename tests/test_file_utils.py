@@ -1,3 +1,4 @@
+import os
 import pytest
 import logging
 import smbprotocol.exceptions as smb_exceptions
@@ -60,7 +61,7 @@ def test_save_attachment_file_exists(mock_logger, mock_stat, mock_register_sessi
 
     mock_register_session.assert_called_once_with(server=smb_server, username=username, password=password)
     mock_makedirs.assert_called_once_with(smb_folder, exist_ok=True)
-    mock_stat.assert_called_once_with(f"{smb_folder}\\{filename}")
+    mock_stat.assert_called_once_with(os.path.join(smb_folder, filename))
     mock_open_file.assert_not_called()
     mock_logger.info.assert_called_with(f"File already exists, skipping: {filename}")
 
@@ -81,8 +82,8 @@ def test_save_attachment_file_new(mock_logger, mock_stat, mock_register_session,
 
     mock_register_session.assert_called_once_with(server=smb_server, username=username, password=password)
     mock_makedirs.assert_called_once_with(smb_folder, exist_ok=True)
-    mock_stat.assert_called_once_with(f"{smb_folder}\\{filename}")
-    mock_open_file.assert_called_once_with(f"{smb_folder}\\{filename}", mode='wb')
+    mock_stat.assert_called_once_with(os.path.join(smb_folder, filename))
+    mock_open_file.assert_called_once_with(os.path.join(smb_folder, filename), mode='wb')
     mock_open_file().write.assert_called_once_with(file_data)
 
 @patch('smbclient.open_file', new_callable=mock_open)
@@ -104,8 +105,8 @@ def test_save_attachment_content_filter_match_pdf(mock_extract_text, mock_logger
 
     mock_register_session.assert_called_once_with(server=smb_server, username=username, password=password)
     mock_makedirs.assert_called_once_with(smb_folder, exist_ok=True)
-    mock_stat.assert_called_once_with(f"{smb_folder}\\{filename}")
-    mock_open_file.assert_called_once_with(f"{smb_folder}\\{filename}", mode='wb')
+    mock_stat.assert_called_once_with(os.path.join(smb_folder, filename))
+    mock_open_file.assert_called_once_with(os.path.join(smb_folder, filename), mode='wb')
     mock_open_file().write.assert_called_once_with(file_data)
     
 @patch('smbclient.open_file', new_callable=mock_open)
@@ -127,8 +128,8 @@ def test_save_attachment_content_filter_match_no_pdf(mock_logger, mock_stat, moc
 
     mock_register_session.assert_called_once_with(server=smb_server, username=username, password=password)
     mock_makedirs.assert_called_once_with(smb_folder, exist_ok=True)
-    mock_stat.assert_called_once_with(f"{smb_folder}\\{filename}")
-    mock_open_file.assert_called_once_with(f"{smb_folder}\\{filename}", mode='wb')
+    mock_stat.assert_called_once_with(os.path.join(smb_folder, filename))
+    mock_open_file.assert_called_once_with(os.path.join(smb_folder, filename), mode='wb')
     mock_open_file().write.assert_called_once_with(file_data)
     file_data.decode.assert_called_once_with('utf-8', errors='ignore')
 
@@ -175,8 +176,8 @@ def test_save_attachment_exception_logging(mock_logger, mock_stat, mock_register
 
     mock_register_session.assert_called_once_with(server=smb_server, username=username, password=password)
     mock_makedirs.assert_called_once_with(smb_folder, exist_ok=True)
-    mock_stat.assert_called_once_with(f"{smb_folder}\\{filename}")
-    mock_open_file.assert_called_once_with(f"{smb_folder}\\{filename}", mode='wb')
+    mock_stat.assert_called_once_with(os.path.join(smb_folder, filename))
+    mock_open_file.assert_called_once_with(os.path.join(smb_folder, filename), mode='wb')
     mock_logger.error.assert_called_with("Error saving attachment: Test exception")
 
 if __name__ == '__main__':
