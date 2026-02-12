@@ -20,6 +20,15 @@ from .file_utils import sanitize_filename, save_attachment, extract_email_addres
 script_logger = configure_logging()
 
 def get_last_run_timestamp(criteria_data):
+    """
+    Get the timestamp of the last program run from criteria data.
+    
+    Args:
+        criteria_data: Dictionary containing criteria configuration
+        
+    Returns:
+        datetime object of last run, defaults to 2003-01-01 if not found or invalid
+    """
     try:
         if 'last_run' not in criteria_data:
             criteria_data['last_run'] = '2003-01-01T00:00:00'
@@ -29,13 +38,28 @@ def get_last_run_timestamp(criteria_data):
         return datetime.fromisoformat('2003-01-01T00:00:00')
 
 def update_last_run_timestamp(criteria_path, criteria_data):
+    """
+    Update the last run timestamp in the criteria file.
+    
+    Args:
+        criteria_path: Path to the criteria JSON file
+        criteria_data: Dictionary containing criteria configuration
+    """
     criteria_data['last_run'] = datetime.now().isoformat()
     with open(criteria_path, 'w', encoding='utf-8') as f:
         json.dump(criteria_data, f, ensure_ascii=False, indent=4)
 
 @retry(tries=5, delay=2, backoff=2, exceptions=(Exception,))
-# Function to authenticate and build the Gmail API service
 def authenticate_gmail(credential_path):
+    """
+    Authenticate with Gmail API and return service object.
+    
+    Args:
+        credential_path: Path to the Gmail API credentials file
+        
+    Returns:
+        Authenticated Gmail API service object
+    """
     SCOPES = ['https://mail.google.com/']
     creds = None
     if os.path.exists('token.json'):
@@ -52,6 +76,17 @@ def authenticate_gmail(credential_path):
     return service
 
 def fetch_messages(service, query, exit_event):
+    """
+    Fetch Gmail messages matching a query.
+    
+    Args:
+        service: Authenticated Gmail API service object
+        query: Gmail search query string
+        exit_event: Threading event to signal early termination
+        
+    Returns:
+        List of message dictionaries containing message IDs
+    """
     messages = []
     next_page_token = None
     while True:
@@ -70,6 +105,20 @@ def fetch_messages(service, query, exit_event):
     return messages
 
 def process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, content_filters=None):
+    """
+    Process a single email message and save attachments.
+    
+    Args:
+        service: Authenticated Gmail API service object
+        msg_id: Gmail message ID
+        smb_server: SMB server hostname
+        smb_folder: Target folder path on SMB share
+        filters: List of file extensions to save (e.g., ['.pdf'])
+        username: SMB username
+        password: SMB password
+        exit_event: Threading event to signal early termination
+        content_filters: Optional list of strings to filter attachment content
+    """
     if exit_event.is_set():
         script_logger.info("Exit requested. Stopping email processing.")
         return
@@ -104,7 +153,7 @@ def process_email(service, msg_id, smb_server, smb_folder, filters, username, pa
                     file_data = part.get_payload(decode=True)
                     try:
                         save_attachment(smb_server, hierarchical_folder, filename, file_data, username, password, content_filters)
-                        script_logger.info(f"Saved attachment to {hierarchical_folder}\\{filename}")
+                        script_logger.info(f"Saved attachment to {os.path.join(hierarchical_folder, filename)}")
                         attachment_saved = True  # pragma: no cover
                     except Exception as e:
                         script_logger.error(f"Failed to save attachment {filename}: {e}")
@@ -118,6 +167,17 @@ def process_email(service, msg_id, smb_server, smb_folder, filters, username, pa
                 script_logger.error(f"Failed to delete email with ID: {msg_id}, error: {e}")
 
 def process_emails(service, since_date, username, password, criteria_data, exit_event):
+    """
+    Process all emails matching criteria and save their attachments.
+    
+    Args:
+        service: Authenticated Gmail API service object
+        since_date: datetime object to process emails after this date
+        username: SMB username
+        password: SMB password
+        criteria_data: Dictionary containing search criteria and configuration
+        exit_event: Threading event to signal early termination
+    """
     script_logger.info(f"Processing emails since: {since_date}")
     try:
         timestamp = int(since_date.timestamp())

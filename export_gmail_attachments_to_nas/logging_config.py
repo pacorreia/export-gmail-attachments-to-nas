@@ -1,6 +1,14 @@
 import logging
 
 def configure_logging():  # pragma: no cover
+    """
+    Configure logging for the application.
+    
+    Sets up a stream handler with INFO level and specific logging levels for third-party libraries.
+    
+    Returns:
+        Configured logger instance
+    """
     script_logger = logging.getLogger(__name__)
     if not script_logger.hasHandlers():
         script_logger.setLevel(logging.INFO)

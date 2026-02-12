@@ -18,8 +18,18 @@ setup(
         'smbprotocol',
         'python-dateutil',
         'pymupdf',
-        'PyInstaller',
     ],
+    extras_require={
+        'dev': [
+            'pytest>=9.0.0',
+            'pytest-cov>=7.0.0',
+            'build',
+            'twine',
+        ],
+        'build': [
+            'PyInstaller',
+        ],
+    },
     author='Paulo Correia',
     author_email='pcportugal@gmail.com',
     description='A package for extracting email attachments and saving them to a NAS server.',

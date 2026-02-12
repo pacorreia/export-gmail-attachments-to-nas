@@ -11,11 +11,18 @@ script_logger = configure_logging()
 exit_event = threading.Event()
 
 def signal_handler(sig, frame):
+    """Handle shutdown signals gracefully."""
     script_logger.info("Exit signal received. Shutting down gracefully...")
     exit_event.set()
 
 def parse_arguments():
-    parser = argparse.ArgumentParser(description='Process some integers.')
+    """
+    Parse command-line arguments.
+    
+    Returns:
+        Parsed arguments object
+    """
+    parser = argparse.ArgumentParser(description='Export Gmail attachments to NAS server.')
     parser.add_argument('--username', required=True, help='NAS username')
     parser.add_argument('--password', required=True, help='NAS password')
     parser.add_argument('--credentials', required=True, help='Path to credentials JSON file')
@@ -23,54 +30,66 @@ def parse_arguments():
     args = parser.parse_args()
     return args
 
-def setup (): # pragma: no cover
+def setup(): # pragma: no cover
+    """
+    Initialize application: parse arguments, configure logging, and signal handlers.
+    
+    Returns:
+        Parsed arguments object
+    """
     args = parse_arguments()
     configure_logging()
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
     return args
-  
-def main_loop(args):    # pragma: no cover
 
-  while not exit_event.is_set():
-    username = os.getenv('NAS_USERNAME') or args.username
-    password = os.getenv('NAS_PASSWORD') or args.password
-    criteria_path=args.criteria
-    credentials_path=args.credentials
+def main_loop(args): # pragma: no cover
+    """
+    Main processing loop: authenticate, fetch emails, save attachments, and repeat.
     
-    if not username or not password or not criteria_path or not credentials_path:
-        script_logger.error("Please provide a username, password, criteria file, and credentials file.")
-        sys.exit(1)
-
-    from .gmail_service import authenticate_gmail, process_emails, get_last_run_timestamp, update_last_run_timestamp
-    
+    Args:
+        args: Parsed command-line arguments
+    """
     while not exit_event.is_set():
-        try:
-            # Load criteria.json once
+        username = os.getenv('NAS_USERNAME') or args.username
+        password = os.getenv('NAS_PASSWORD') or args.password
+        criteria_path = args.criteria
+        credentials_path = args.credentials
+
+        if not username or not password or not criteria_path or not credentials_path:
+            script_logger.error("Please provide a username, password, criteria file, and credentials file.")
+            sys.exit(1)
+
+        from .gmail_service import authenticate_gmail, process_emails, get_last_run_timestamp, update_last_run_timestamp
+
+        while not exit_event.is_set():
             try:
-                with open(args.criteria, 'r', encoding='utf-8') as f:
-                    criteria_data = json.load(f)
+                # Load criteria.json once
+                try:
+                    with open(args.criteria, 'r', encoding='utf-8') as f:
+                        criteria_data = json.load(f)
+                except Exception as e:
+                    script_logger.error(f"Error loading criteria.json: {e}")
+                    sys.exit(1)
+                last_run = get_last_run_timestamp(criteria_data)
+                service = authenticate_gmail(credentials_path)
+                script_logger.info("Starting to process emails...")
+                process_emails(service, last_run, username, password, criteria_data, exit_event)
+                script_logger.info("Finished processing emails.")
+                update_last_run_timestamp(criteria_path, criteria_data)
+                for _ in range(300):  # Sleep for 5 minutes, checking for exit requests
+                    if exit_event.is_set():
+                        break
+                    time.sleep(1)
             except Exception as e:
-                script_logger.error(f"Error loading criteria.json: {e}")
-                sys.exit(1)
-            last_run = get_last_run_timestamp(criteria_data)
-            service = authenticate_gmail(credentials_path)
-            script_logger.info("Starting to process emails...")
-            process_emails(service, last_run,username, password, criteria_data, exit_event)
-            script_logger.info("Finished processing emails.")
-            update_last_run_timestamp(criteria_path, criteria_data)
-            for _ in range(300):  # Sleep for 5 minutes, checking for exit requests
-                if exit_event.is_set():
-                    break
-                time.sleep(1)
-        except Exception as e:
-            script_logger.error(f"Error processing email: {e}")
-            continue
+                script_logger.error(f"Error processing email: {e}")
+                continue
 
     script_logger.info("Program terminated.")
 
 def main(): # pragma: no cover
+    """Entry point for the application."""
     args = setup()
     main_loop(args)
 
