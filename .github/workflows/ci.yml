@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    permissions:
+      pull-requests: write
     strategy:
       fail-fast: false
       matrix:
@@ -46,6 +48,13 @@ jobs:
           indicators: true
           output: both
           thresholds: '60 80'
+
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          recreate: true
+          path: code-coverage-results.md
 
   lint:
     runs-on: ubuntu-latest
