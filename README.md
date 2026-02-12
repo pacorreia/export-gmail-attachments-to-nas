@@ -33,6 +33,20 @@ To use the package, you can run the command line script provided:
 
 This will execute the main function defined in the main module.
 
+### Criteria options
+
+Each rule in `criteria.json` can control whether the source email is deleted after a successful save:
+
+```json
+{
+	"enabled": true,
+	"query": "subject:Invoice filename:.pdf",
+	"smb_folder": "\\documents\\faturas",
+	"filters": [".pdf"],
+	"delete_after_save": false
+}
+```
+
 ## Dependencies
 
 This project requires the following Python packages:

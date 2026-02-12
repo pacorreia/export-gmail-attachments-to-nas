@@ -104,7 +104,7 @@ def fetch_messages(service, query, exit_event):
             break
     return messages
 
-def process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, content_filters=None):
+def process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, content_filters=None, delete_after_save=False):
     """
     Process a single email message and save attachments.
     
@@ -159,12 +159,14 @@ def process_email(service, msg_id, smb_server, smb_folder, filters, username, pa
                         script_logger.error(f"Failed to save attachment {filename}: {e}")
                         attachment_saved = False  # pragma: no cover
 
-        if attachment_saved:
+        if attachment_saved and delete_after_save:
             try:
                 service.users().messages().delete(userId='me', id=msg_id).execute()
                 script_logger.info(f"Deleted email with ID: {msg_id}")
             except Exception as e:
                 script_logger.error(f"Failed to delete email with ID: {msg_id}, error: {e}")
+        elif attachment_saved:
+            script_logger.info(f"Skipping delete for email with ID: {msg_id}")
 
 def process_emails(service, since_date, username, password, criteria_data, exit_event):
     """
@@ -201,6 +203,7 @@ def process_emails(service, since_date, username, password, criteria_data, exit_
         smb_folder = criterion["smb_folder"]
         filters = criterion.get("filters", [])
         content_filters = criterion.get("attachment_content_filter", [])
+        delete_after_save = criterion.get("delete_after_save", False)
         full_query = f'{base_query} {query}'
         script_logger.info(f"Query: {full_query}")
 
@@ -208,15 +211,26 @@ def process_emails(service, since_date, username, password, criteria_data, exit_
         script_logger.info(f"Total messages retrieved for query '{query}': {len(messages)}")
 
         for msg in messages:
-            messages_with_smb_folder.append((msg['id'], smb_folder, filters, content_filters))
+            messages_with_smb_folder.append((msg['id'], smb_folder, filters, content_filters, delete_after_save))
 
     # Process emails iteratively
-    for msg_id, smb_folder, filters, content_filters in messages_with_smb_folder:
+    for msg_id, smb_folder, filters, content_filters, delete_after_save in messages_with_smb_folder:
         if exit_event.is_set():
             script_logger.info("Exit requested. Stopping email processing.")
             return
         try:
-            process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, content_filters)
+            process_email(
+                service,
+                msg_id,
+                smb_server,
+                smb_folder,
+                filters,
+                username,
+                password,
+                exit_event,
+                content_filters,
+                delete_after_save=delete_after_save,
+            )
         except Exception as e:
             script_logger.error(f"Error processing email: {e}")
             if exit_event.is_set():

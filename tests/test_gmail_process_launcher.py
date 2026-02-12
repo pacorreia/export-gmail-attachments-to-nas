@@ -38,7 +38,18 @@ def test_process_emails(mock_process_email, mock_fetch_messages):
     
     # Assertions
     mock_fetch_messages.assert_called_once_with(mock_service, 'after:1672531200 test_query', mock_exit_event)
-    mock_process_email.assert_called_once_with(mock_service, 'test_msg_id', 'test_server', 'test_folder', [], 'username', 'password', mock_exit_event, [])
+    mock_process_email.assert_called_once_with(
+        mock_service,
+        'test_msg_id',
+        'test_server',
+        'test_folder',
+        [],
+        'username',
+        'password',
+        mock_exit_event,
+        [],
+        delete_after_save=False,
+    )
 
 def test_fetch_messages():
     # Mock the service
