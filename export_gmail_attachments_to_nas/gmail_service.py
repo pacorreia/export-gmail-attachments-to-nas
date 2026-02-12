@@ -1,10 +1,8 @@
 import base64
 import json
 import os
-import threading
 import time
 from .logging_config import configure_logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from email import message_from_bytes
 from email.header import decode_header, make_header
@@ -20,8 +18,6 @@ from .file_utils import sanitize_filename, save_attachment, extract_email_addres
 
 # Configure logger
 script_logger = configure_logging()
-
-gmail_lock = threading.Lock()
 
 def get_last_run_timestamp(criteria_data):
     try:
@@ -40,7 +36,7 @@ def update_last_run_timestamp(criteria_path, criteria_data):
 @retry(tries=5, delay=2, backoff=2, exceptions=(Exception,))
 # Function to authenticate and build the Gmail API service
 def authenticate_gmail(credential_path):
-    SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
+    SCOPES = ['https://mail.google.com/']
     creds = None
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
@@ -77,8 +73,7 @@ def process_email(service, msg_id, smb_server, smb_folder, filters, username, pa
     if exit_event.is_set():
         script_logger.info("Exit requested. Stopping email processing.")
         return
-    with gmail_lock:
-        msg_data = service.users().messages().get(userId='me', id=msg_id, format='raw').execute()
+    msg_data = service.users().messages().get(userId='me', id=msg_id, format='raw').execute()
     msg_bytes = base64.urlsafe_b64decode(msg_data['raw'].encode('ASCII'))
     msg = message_from_bytes(msg_bytes)
     msg_date = date_parser.parse(msg['Date'])
@@ -92,6 +87,7 @@ def process_email(service, msg_id, smb_server, smb_folder, filters, username, pa
         month = f"{msg_date.month:0>2}"
         day = f"{msg_date.day:0>2}"
         hierarchical_folder = os.path.join(f"\\\\{smb_server}", smb_folder, sender_email, str(year), str(month), str(day))
+        attachment_saved = False
 
         for part in msg.walk():
             if exit_event.is_set():
@@ -154,15 +150,14 @@ def process_emails(service, since_date, username, password, criteria_data, exit_
         for msg in messages:
             messages_with_smb_folder.append((msg['id'], smb_folder, filters, content_filters))
 
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        futures = [executor.submit(process_email, service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, content_filters) for msg_id, smb_folder, filters, content_filters in messages_with_smb_folder]
-        for future in as_completed(futures):
-            try:
-                if exit_event.is_set(): #pragma: no cover
-                    script_logger.info("Exit requested. Stopping email processing.")
-                    return
-                future.result()
-            except Exception as e:
-                script_logger.error(f"Error processing email: {e}")
-                if exit_event.is_set(): #pragma: no cover
-                    return
+    # Process emails iteratively
+    for msg_id, smb_folder, filters, content_filters in messages_with_smb_folder:
+        if exit_event.is_set():
+            script_logger.info("Exit requested. Stopping email processing.")
+            return
+        try:
+            process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, content_filters)
+        except Exception as e:
+            script_logger.error(f"Error processing email: {e}")
+            if exit_event.is_set():
+                return
