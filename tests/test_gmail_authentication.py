@@ -16,7 +16,7 @@ def test_authenticate_gmail(mock_path_exists, mock_from_client_secrets_file, moc
     credential_path = 'path/to/credentials.json'
     service = authenticate_gmail(credential_path)
 
-    mock_from_authorized_user_file.assert_called_once_with('token.json', ['https://www.googleapis.com/auth/gmail.readonly'])
+    mock_from_authorized_user_file.assert_called_once_with('token.json', ['https://mail.google.com/'])
     mock_build.assert_called_once_with('gmail', 'v1', credentials=mock_creds)
     assert service is not None
     
