@@ -105,6 +105,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
+          # Stash any uncommitted changes to docs/index.html before switching branches
+          git stash
+          
           # Fetch gh-pages branch
           git fetch origin gh-pages 2>/dev/null || echo "gh-pages branch doesn't exist yet"
           
