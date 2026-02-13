@@ -45,9 +45,7 @@ a {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: radial-gradient(circle at 10% 10%, #f8efe2 0%, transparent 40%),
-              radial-gradient(circle at 90% 20%, #e7f0ec 0%, transparent 45%),
-              linear-gradient(160deg, #f7f1e8 0%, #f4ede3 45%, #efe7dc 100%);
+  background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 50%, #eff6ff 100%);
 }
 
 .orb {
