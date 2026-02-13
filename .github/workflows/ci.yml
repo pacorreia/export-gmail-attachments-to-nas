@@ -11,6 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       pull-requests: write
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -100,8 +101,6 @@ jobs:
 
       - name: Commit and Push Coverage Badge Update
         if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -110,8 +109,7 @@ jobs:
             echo "No changes to commit"
           else
             git commit -m "Update coverage badge to reflect test results"
-            git push https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}.git
-          fi
+            git push
 
   lint:
     runs-on: ubuntu-latest
