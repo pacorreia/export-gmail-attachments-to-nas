@@ -99,18 +99,9 @@ jobs:
           print(f"Updated coverage badge to {coverage_percent}%")
           EOF
 
-      - name: Commit and Push Coverage Badge Update
-        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/index.html
-          if git diff --staged --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "Update coverage badge to reflect test results"
-            git push
-          fi
+      # Note: Auto-commit to main is disabled due to branch protection rules.
+      # The coverage badge is still calculated dynamically from test results.
+      # Manual badge updates to docs/index.html can be done via PR if needed.
 
   lint:
     runs-on: ubuntu-latest
