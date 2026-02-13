@@ -32,6 +32,7 @@
           <a href="#oauth">OAuth Setup</a>
           <a href="#config">Config</a>
           <a href="#security">Security</a>
+          <a href="#contributors">Contributors</a>
         </nav>
       </div>
     </header>
@@ -215,7 +216,35 @@ export-gmail-attachments-to-nas \
           </article>
         </div>
       </section>
+
+      <section id="contributors" class="section container">
+        <h2>Contributors</h2>
+        <p>Thanks to all the amazing people who have contributed to this project!</p>
+        <div id="contributors-list" class="contributors-grid">
+          <div class="loading">Loading contributors...</div>
+        </div>
+      </section>
     </main>
+
+    <script>
+      // Fetch contributors from GitHub API
+      fetch('https://api.github.com/repos/pacorreia/export-gmail-attachments-to-nas/contributors')
+        .then(response => response.json())
+        .then(contributors => {
+          const container = document.getElementById('contributors-list');
+          container.innerHTML = contributors.map(contributor => `
+            <a href="${contributor.html_url}" class="contributor" target="_blank" rel="noopener">
+              <img src="${contributor.avatar_url}" alt="${contributor.login}" />
+              <div class="contributor-name">${contributor.login}</div>
+              <div class="contributor-contributions">${contributor.contributions} contributions</div>
+            </a>
+          `).join('');
+        })
+        .catch(error => {
+          console.error('Error fetching contributors:', error);
+          document.getElementById('contributors-list').innerHTML = '<p>Unable to load contributors.</p>';
+        });
+    </script>
 
     <footer class="site-footer">
       <div class="container footer-grid">
