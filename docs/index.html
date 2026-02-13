@@ -29,6 +29,7 @@
         <nav class="nav">
           <a href="#features">Features</a>
           <a href="#quickstart">Quick Start</a>
+          <a href="#oauth">OAuth Setup</a>
           <a href="#config">Config</a>
           <a href="#security">Security</a>
         </nav>
@@ -125,6 +126,71 @@ export-gmail-attachments-to-nas \
     }
   ]
 }</code></pre>
+        </div>
+      </section>
+
+      <section id="oauth" class="section container">
+        <h2>Google OAuth Setup</h2>
+        <p>This tool requires Google OAuth credentials to access Gmail. Follow these steps to create them:</p>
+        
+        <div class="setup-steps">
+          <div class="step">
+            <h3>1. Create a Google Cloud Project</h3>
+            <ol>
+              <li>Go to <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a></li>
+              <li>Click <strong>Select a Project</strong> → <strong>New Project</strong></li>
+              <li>Enter a project name (e.g., "Gmail Attachments Export")</li>
+              <li>Click <strong>Create</strong> and wait for the project to initialize</li>
+            </ol>
+          </div>
+
+          <div class="step">
+            <h3>2. Enable Gmail API</h3>
+            <ol>
+              <li>In the Cloud Console, navigate to <strong>APIs &amp; Services</strong> → <strong>Library</strong></li>
+              <li>Search for "Gmail API"</li>
+              <li>Click the Gmail API result</li>
+              <li>Click <strong>Enable</strong></li>
+            </ol>
+          </div>
+
+          <div class="step">
+            <h3>3. Create OAuth 2.0 Credentials</h3>
+            <ol>
+              <li>Go to <strong>APIs &amp; Services</strong> → <strong>Credentials</strong></li>
+              <li>Click <strong>+ Create Credentials</strong> → <strong>OAuth client ID</strong></li>
+              <li>If prompted, configure the OAuth consent screen first:
+                <ul>
+                  <li>Choose <strong>External</strong> user type</li>
+                  <li>Fill in the required fields (app name, user support email)</li>
+                  <li>Under scopes, add <code>https://mail.google.com/</code></li>
+                  <li>Save and continue</li>
+                </ul>
+              </li>
+              <li>Back to credentials, select <strong>Desktop application</strong> as the application type</li>
+              <li>Click <strong>Create</strong></li>
+            </ol>
+          </div>
+
+          <div class="step">
+            <h3>4. Download Credentials</h3>
+            <ol>
+              <li>In the Credentials page, find your newly created OAuth 2.0 Client ID</li>
+              <li>Click the download icon (↓) to download the JSON file</li>
+              <li>Save it as <code>credentials.json</code> in your project directory</li>
+            </ol>
+          </div>
+
+          <div class="step">
+            <h3>5. First Run Authentication</h3>
+            <ol>
+              <li>Run the tool for the first time with your credentials</li>
+              <li>A browser window will open asking for Gmail access</li>
+              <li>Click <strong>Allow</strong> to grant permissions</li>
+              <li>The tool will create <code>token.json</code> automatically</li>
+              <li>Keep both files secure and don't commit them to version control</li>
+            </ol>
+          </div>
         </div>
       </section>
 
