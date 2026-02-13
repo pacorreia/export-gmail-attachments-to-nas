@@ -253,6 +253,55 @@ code {
   font-size: 0.95rem;
 }
 
+.setup-steps {
+  display: grid;
+  gap: 24px;
+  margin: 12px 0;
+}
+
+.step {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 24px;
+  border-left: 4px solid var(--accent);
+}
+
+.step h3 {
+  margin-top: 0;
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+.step ol {
+  margin: 12px 0;
+  padding-left: 24px;
+  color: var(--muted);
+  line-height: 1.8;
+}
+
+.step li {
+  margin-bottom: 10px;
+}
+
+.step ul {
+  margin: 8px 0 8px 24px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.step code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: 0.9rem;
+}
+
+.step a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 .site-footer {
   padding: 30px 0 60px;
   border-top: 1px solid #e9dfd2;
