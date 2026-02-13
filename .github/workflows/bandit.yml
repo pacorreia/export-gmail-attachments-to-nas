@@ -14,9 +14,13 @@ name: Bandit
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - '**.py'
   pull_request:
     # The branches below must be a subset of the branches above
     branches: [ "main" ]
+    paths:
+      - '**.py'
   schedule:
     - cron: '21 23 * * 0'
 
@@ -57,7 +61,3 @@ jobs:
         with:
           # Path to the SARIF file to process.
           sarif_file: ./results.sarif # default is results.sarif
-          # Where to post the results: "pr" for Pull Request comment, "issue" for Issue comment. If not set, the action will auto-detect based on the GitHub context.
-          # post_target: # optional, default is 
-                
-
