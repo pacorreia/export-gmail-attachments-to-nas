@@ -120,11 +120,12 @@ jobs:
             git rm -rf .
           fi
           
-          # Copy docs folder from main branch
-          git checkout main -- docs/
+          # Copy HTML/CSS files from main branch to root of gh-pages
+          git checkout main -- docs/index.html docs/style.css
+          mv docs/index.html . && mv docs/style.css . && rmdir docs
           
           # Stage and commit changes
-          git add docs/
+          git add index.html style.css
           if git diff --staged --quiet; then
             echo "No coverage badge changes to deploy"
           else
