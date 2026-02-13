@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Export Gmail attachments to a NAS server with filters and content checks." />
+    <title>Export Gmail Attachments to NAS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true">
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+      <div class="orb orb-c"></div>
+    </div>
+
+    <header class="site-header">
+      <div class="container">
+        <div class="brand">
+          <div class="brand-mark">EG</div>
+          <div>
+            <div class="brand-title">Export Gmail Attachments</div>
+            <div class="brand-sub">to NAS</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a href="#features">Features</a>
+          <a href="#quickstart">Quick Start</a>
+          <a href="#config">Config</a>
+          <a href="#security">Security</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero container">
+        <div class="hero-text">
+          <p class="eyebrow">Gmail + NAS automation</p>
+          <h1>Save invoice and receipt attachments from Gmail to your NAS automatically.</h1>
+          <p class="lead">
+            A fast, focused Python tool to fetch matching emails, store attachments in structured folders,
+            and optionally delete processed messages.
+          </p>
+          <div class="cta">
+            <a class="btn primary" href="https://github.com/pacorreia/export-gmail-attachments-to-nas">View Repository</a>
+            <a class="btn ghost" href="#quickstart">Get Started</a>
+          </div>
+          <div class="badges" aria-label="Project badges">
+            <a href="https://github.com/pacorreia/export-gmail-attachments-to-nas/actions/workflows/ci.yml">
+              <img alt="CI" src="https://github.com/pacorreia/export-gmail-attachments-to-nas/actions/workflows/ci.yml/badge.svg" />
+            </a>
+            <a href="https://codecov.io/gh/pacorreia/export-gmail-attachments-to-nas">
+              <img alt="Coverage" src="https://img.shields.io/codecov/c/github/pacorreia/export-gmail-attachments-to-nas?color=2f4b3a" />
+            </a>
+            <img alt="License" src="https://img.shields.io/github/license/pacorreia/export-gmail-attachments-to-nas?color=2f4b3a" />
+            <img alt="Last Commit" src="https://img.shields.io/github/last-commit/pacorreia/export-gmail-attachments-to-nas?color=2f4b3a" />
+            <img alt="Issues" src="https://img.shields.io/github/issues/pacorreia/export-gmail-attachments-to-nas?color=2f4b3a" />
+            <a class="badge-link" href="https://pypi.org/project/export-gmail-attachments-to-nas/">PyPI</a>
+          </div>
+        </div>
+        <div class="hero-card">
+          <div class="card-title">What it does</div>
+          <ul>
+            <li>Search Gmail with filters and queries</li>
+            <li>Save attachments by sender and date</li>
+            <li>Optional content filtering</li>
+            <li>Reliable, retry-backed uploads</li>
+          </ul>
+          <div class="card-footer">
+            <span>Python 3.12+</span>
+            <span>SMB/NAS ready</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="section container">
+        <h2>Features</h2>
+        <div class="grid">
+          <article class="tile">
+            <h3>Query-driven selection</h3>
+            <p>Define Gmail queries and attachment filters per rule. Keep it narrow and precise.</p>
+          </article>
+          <article class="tile">
+            <h3>Structured storage</h3>
+            <p>Attachments are saved by sender and date, making retrieval predictable.</p>
+          </article>
+          <article class="tile">
+            <h3>Content filters</h3>
+            <p>Scan PDF or text attachments for required phrases before saving.</p>
+          </article>
+          <article class="tile">
+            <h3>Operational safety</h3>
+            <p>Retries, logging, and optional delete-after-save keep runs clean.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="quickstart" class="section container">
+        <h2>Quick Start</h2>
+        <div class="code-panel">
+          <pre><code>pip install -r requirements.txt
+python -m build
+pip install .
+
+export-gmail-attachments-to-nas \
+  --username YOUR_NAS_USER \
+  --password YOUR_NAS_PASSWORD \
+  --credentials /path/to/credentials.json \
+  --criteria /path/to/criteria.json</code></pre>
+        </div>
+      </section>
+
+      <section id="config" class="section container">
+        <h2>Criteria Example</h2>
+        <div class="code-panel">
+          <pre><code>{
+  "smb_server": "homenas.home.lan",
+  "criteria": [
+    {
+      "enabled": true,
+      "query": "{subject:Invoice subject:Receipt} filename:.pdf",
+      "smb_folder": "\\documents\\faturas",
+      "filters": [".pdf"]
+    }
+  ]
+}</code></pre>
+        </div>
+      </section>
+
+      <section id="security" class="section container">
+        <h2>Security Notes</h2>
+        <div class="grid">
+          <article class="tile">
+            <h3>Credentials</h3>
+            <p>Store NAS credentials in env vars or pass them at runtime.</p>
+          </article>
+          <article class="tile">
+            <h3>Token hygiene</h3>
+            <p>Gmail tokens are stored locally in token.json. Treat it as sensitive.</p>
+          </article>
+          <article class="tile">
+            <h3>Scope control</h3>
+            <p>Use minimal required Gmail scope. Delete requires mail.google.com.</p>
+          </article>
+          <article class="tile">
+            <h3>NAS access</h3>
+            <p>Limit SMB share permissions to a dedicated account when possible.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <div>
+          <div class="brand-title">Export Gmail Attachments to NAS</div>
+          <p>Built for fast, reliable attachment routing.</p>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/pacorreia/export-gmail-attachments-to-nas">GitHub</a>
+          <a href="https://github.com/pacorreia/export-gmail-attachments-to-nas/issues">Issues</a>
+          <a href="https://github.com/pacorreia/export-gmail-attachments-to-nas/releases">Releases</a>
+          <a href="https://pypi.org/project/export-gmail-attachments-to-nas/">PyPI</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
