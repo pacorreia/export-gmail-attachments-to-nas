@@ -110,6 +110,7 @@ jobs:
           else
             git commit -m "Update coverage badge to reflect test results"
             git push
+          fi
 
   lint:
     runs-on: ubuntu-latest
