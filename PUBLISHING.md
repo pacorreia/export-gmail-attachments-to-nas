@@ -1,6 +1,113 @@
-# Publishing to PyPI
+# Publishing the Package
 
-This guide explains how to publish the `export-gmail-attachments-to-nas` package to PyPI.
+This guide explains how to publish the `export-gmail-attachments-to-nas` package using GitHub Releases and PyPI.
+
+## Table of Contents
+- [GitHub Releases](#github-releases) (Easiest, Automated)
+- [PyPI](#pypi)
+- [Direct Git Installation](#direct-git-installation)
+
+---
+
+## GitHub Releases
+
+GitHub Releases allow you to attach built packages to version tags. This is automated through GitHub Actions.
+
+### Advantages
+- Integrated with GitHub repository
+- Automatic via GitHub Actions
+- No separate credentials needed
+- Users can download packages directly
+
+### Publishing via GitHub Actions (Automated)
+
+The included workflow [`.github/workflows/publish-package.yml`](.github/workflows/publish-package.yml) automatically:
+1. Builds the package
+2. Attaches `.tar.gz` and `.whl` files to the release
+3. Optionally publishes to PyPI (if configured)
+
+**Steps to publish:**
+
+1. **Update version** in `export_gmail_attachments_to_nas/__init__.py`:
+   ```python
+   __version__ = '1.0.1'
+   ```
+
+2. **Commit and push** the version change:
+   ```bash
+   git add export_gmail_attachments_to_nas/__init__.py
+   git commit -m "Bump version to 1.0.1"
+   git push
+   ```
+
+3. **Create a new release** on GitHub:
+   - Go to your repo → **Releases** → **Create a new release**
+   - Click **Choose a tag** → type `v1.0.1` → **Create new tag**
+   - Fill in release title and notes
+   - Click **Publish release**
+
+4. **Workflow runs automatically** and attaches packages to the release
+
+### Installing from GitHub Releases
+
+Users can install directly from the release:
+
+```bash
+# Install latest release
+pip install https://github.com/pacorreia/export-gmail-attachments-to-nas/releases/latest/download/export_gmail_attachments_to_nas-1.0.0-py3-none-any.whl
+
+# Or specific version
+pip install https://github.com/pacorreia/export-gmail-attachments-to-nas/releases/download/v1.0.1/export_gmail_attachments_to_nas-1.0.1-py3-none-any.whl
+```
+
+---
+
+## Direct Git Installation
+
+Users can install directly from the GitHub repository:
+
+```bash
+# Install from main branch
+pip install git+https://github.com/pacorreia/export-gmail-attachments-to-nas.git
+
+# Install specific version/tag
+pip install git+https://github.com/pacorreia/export-gmail-attachments-to-nas.git@v1.0.1
+
+# Install specific branch
+pip install git+https://github.com/pacorreia/export-gmail-attachments-to-nas.git@feature-branch
+```
+
+---
+
+## PyPI (Optional)
+
+PyPI (Python Package Index) is the official package repository for Python. Publishing here makes your package available via `pip install export-gmail-attachments-to-nas`.
+
+### Advantages
+- Standard Python installation method (`pip install`)
+- Discoverable through PyPI search
+- Official Python ecosystem
+
+### Automatic PyPI Publishing
+
+The workflow [`.github/workflows/publish-package.yml`](.github/workflows/publish-package.yml) can automatically publish to PyPI when you create a release.
+
+**To enable:**
+
+1. **Create PyPI Account**: [pypi.org/account/register/](https://pypi.org/account/register/)
+
+2. **Generate API Token**: [pypi.org/manage/account/token/](https://pypi.org/manage/account/token/)
+
+3. **Add GitHub Secret**:
+   - Go to your repo → **Settings** → **Secrets and variables** → **Actions**
+   - Click **New repository secret**
+   - Name: `PYPI_API_TOKEN`
+   - Value: Your PyPI token (starting with `pypi-...`)
+   - Click **Add secret**
+
+4. **Create a release** - The workflow will automatically publish to both GitHub Releases and PyPI!
+
+### Manual PyPI Publishing
 
 ## Prerequisites
 
@@ -96,51 +203,14 @@ Follow [Semantic Versioning](https://semver.org/):
 - **Minor** (1.0.0 → 1.1.0): New features, backward compatible
 - **Patch** (1.0.0 → 1.0.1): Bug fixes
 
-## GitHub Release Workflow (Automated)
-
-For automated publishing, you can create a GitHub Actions workflow:
-
-1. Add your PyPI token as a GitHub secret: `PYPI_API_TOKEN`
-2. Create `.github/workflows/publish.yml` (see below)
-3. Push a new tag: `git tag v1.0.1 && git push origin v1.0.1`
-
-### Example Workflow
-
-```yaml
-name: Publish to PyPI
-
-on:
-  release:
-    types: [published]
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
-      
-      - name: Build package
-        run: python -m build
-      
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*
-```
-
 ## Quick Reference
 
+**GitHub Release (Recommended):**
+```bash
+# Update version, commit, push, then create GitHub release - workflow handles the rest
+```
+
+**Manual PyPI Publishing:**
 ```bash
 # Complete publishing workflow
 Remove-Item -Recurse -Force dist, build, *.egg-info -ErrorAction SilentlyContinue
