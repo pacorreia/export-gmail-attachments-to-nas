@@ -99,9 +99,38 @@ jobs:
           print(f"Updated coverage badge to {coverage_percent}%")
           EOF
 
-      # Note: Auto-commit to main is disabled due to branch protection rules.
-      # The coverage badge is still calculated dynamically from test results.
-      # Manual badge updates to docs/index.html can be done via PR if needed.
+      - name: Deploy updated badge to gh-pages
+        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Fetch gh-pages branch
+          git fetch origin gh-pages 2>/dev/null || echo "gh-pages branch doesn't exist yet"
+          
+          # Create or checkout gh-pages branch
+          if git rev-parse --verify origin/gh-pages > /dev/null 2>&1; then
+            git checkout gh-pages
+            git reset --hard origin/gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf .
+          fi
+          
+          # Copy docs folder from main branch
+          git checkout main -- docs/
+          
+          # Stage and commit changes
+          git add docs/
+          if git diff --staged --quiet; then
+            echo "No coverage badge changes to deploy"
+          else
+            git commit -m "Deploy: Update coverage badge"
+            git push origin gh-pages
+          fi
+          
+          # Switch back to main for next steps
+          git checkout main
 
   lint:
     runs-on: ubuntu-latest
