@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       pull-requests: write
-      contents: write
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -57,85 +57,6 @@ jobs:
           recreate: true
           path: code-coverage-results.md
 
-      - name: Update Coverage Badge
-        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        run: |
-          python3 << 'EOF'
-          import xml.etree.ElementTree as ET
-          import re
-          
-          # Parse coverage.xml to extract line coverage percentage
-          tree = ET.parse('./coverage.xml')
-          root = tree.getroot()
-          
-          # Get line-rate from the root element (overall coverage)
-          line_rate = float(root.get('line-rate', 0))
-          coverage_percent = int(line_rate * 100)
-          
-          # Determine badge color based on coverage
-          if coverage_percent >= 80:
-              color = 'success'
-          elif coverage_percent >= 60:
-              color = 'yellow'
-          else:
-              color = 'critical'
-          
-          # Read the HTML file
-          with open('docs/index.html', 'r') as f:
-              content = f.read()
-          
-          # Update the badge URL with actual coverage percentage
-          new_badge = f'https://img.shields.io/badge/Code%20Coverage-{coverage_percent}%25-{color}?style=flat'
-          content = re.sub(
-              r'https://img\.shields\.io/badge/Code%20Coverage-\d+%25-\w+\?style=flat',
-              new_badge,
-              content
-          )
-          
-          # Write back the updated HTML
-          with open('docs/index.html', 'w') as f:
-              f.write(content)
-          
-          print(f"Updated coverage badge to {coverage_percent}%")
-          EOF
-
-      - name: Deploy updated badge to gh-pages
-        if: github.ref == 'refs/heads/main' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Stash any uncommitted changes to docs/index.html before switching branches
-          git stash
-          
-          # Fetch gh-pages branch
-          git fetch origin gh-pages 2>/dev/null || echo "gh-pages branch doesn't exist yet"
-          
-          # Create or checkout gh-pages branch
-          if git rev-parse --verify origin/gh-pages > /dev/null 2>&1; then
-            git checkout gh-pages
-            git reset --hard origin/gh-pages
-          else
-            git checkout --orphan gh-pages
-            git rm -rf .
-          fi
-          
-          # Copy HTML/CSS files from main branch to root of gh-pages
-          git checkout main -- docs/index.html docs/style.css
-          mv docs/index.html . && mv docs/style.css . && rmdir docs
-          
-          # Stage and commit changes
-          git add index.html style.css
-          if git diff --staged --quiet; then
-            echo "No coverage badge changes to deploy"
-          else
-            git commit -m "Deploy: Update coverage badge"
-            git push origin gh-pages
-          fi
-          
-          # Switch back to main for next steps
-          git checkout main
-
   lint:
     runs-on: ubuntu-latest
     permissions:
@@ -155,7 +76,5 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          # Stop the build if there are Python syntax errors or undefined names
           flake8 export_gmail_attachments_to_nas --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Exit-zero treats all errors as warnings
           flake8 export_gmail_attachments_to_nas --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
