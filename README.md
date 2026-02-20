@@ -1,4 +1,4 @@
-# Email Extraction
+# Email Attachment Extraction
 
 ## Description
 
