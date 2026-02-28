@@ -3,8 +3,9 @@ End-to-end tests that mock a Gmail account with emails and attachments,
 and a NAS SMB share, then run a configured instance of the app to verify
 that attachments are correctly processed and saved.
 
-External dependencies (Gmail API, smbclient) are replaced with fakes;
-all internal application logic runs without additional patching.
+External dependencies (Gmail API, smbclient) are replaced with fakes, and
+only selected internal helpers (for example, PDF text extraction and Gmail
+attachment conversion) are patched where needed to control inputs and outputs.
 """
 import base64
 import contextlib
