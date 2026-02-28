@@ -49,7 +49,7 @@ Each rule in `criteria.json` can control whether the source email is deleted aft
 
 #### Convert option
 
-Each rule can optionally include a `convert` section to automatically convert saved attachments to another format and store the result in a separate output folder.
+Each rule can optionally include a `convert` section to automatically convert saved attachments to another format and store the result in a separate output folder. Omitting `convert` (or setting `"enabled": false`) leaves the rule's behaviour unchanged.
 
 Supported conversions:
 - PDF → `txt` (text extraction)
@@ -68,6 +68,7 @@ Optional selectors control which attachments are converted:
 	"filters": [".pdf"],
 	"delete_after_save": false,
 	"convert": {
+		"enabled": true,
 		"to": "txt",
 		"output_folder": "\\documents\\converted",
 		"extension_filter": [".pdf"],
@@ -78,6 +79,7 @@ Optional selectors control which attachments are converted:
 
 | Field | Required | Description |
 |---|---|---|
+| `enabled` | ❌ | Enable or disable conversion without removing the config (default: `true`) |
 | `to` | ✅ | Target format: `txt`, `png`, `jpeg`, or `jpg` |
 | `output_folder` | ✅ | SMB folder path where converted files are saved |
 | `extension_filter` | ❌ | Restrict conversion to attachments with these extensions |
