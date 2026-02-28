@@ -3,7 +3,7 @@ import pytest
 import logging
 import smbprotocol.exceptions as smb_exceptions
 from unittest.mock import patch, mock_open, MagicMock
-from export_gmail_attachments_to_nas.file_utils import sanitize_filename, extract_email_address, extract_text_from_pdf, save_attachment
+from export_gmail_attachments_to_nas.file_utils import sanitize_filename, extract_email_address, extract_text_from_pdf, save_attachment, convert_attachment
 
 def test_sanitize_filename():
     assert sanitize_filename("test:file/name") == "test_file_name"
@@ -179,6 +179,79 @@ def test_save_attachment_exception_logging(mock_logger, mock_stat, mock_register
     mock_stat.assert_called_once_with(os.path.join(smb_folder, filename))
     mock_open_file.assert_called_once_with(os.path.join(smb_folder, filename), mode='wb')
     mock_logger.error.assert_called_with("Error saving attachment: Test exception")
+
+@patch('export_gmail_attachments_to_nas.file_utils.extract_text_from_pdf', return_value="hello world")
+def test_convert_attachment_pdf_to_txt(mock_extract_text):
+    results = convert_attachment('document.pdf', b'%PDF-data', 'txt')
+    assert len(results) == 1
+    new_filename, data = results[0]
+    assert new_filename == 'document.txt'
+    assert data == b'hello world'
+    mock_extract_text.assert_called_once_with(b'%PDF-data')
+
+@patch('export_gmail_attachments_to_nas.file_utils.exit_event')
+@patch('export_gmail_attachments_to_nas.file_utils.pymupdf.Document')
+def test_convert_attachment_pdf_to_png(mock_document, mock_exit_event):
+    mock_exit_event.is_set.return_value = False
+    mock_pix = MagicMock()
+    mock_pix.tobytes.return_value = b'\x89PNG'
+    mock_page = MagicMock()
+    mock_page.get_pixmap.return_value = mock_pix
+    mock_doc = MagicMock()
+    mock_doc.page_count = 2
+    mock_doc.load_page.return_value = mock_page
+    mock_document.return_value = mock_doc
+
+    results = convert_attachment('report.pdf', b'%PDF-data', 'png')
+    assert len(results) == 2
+    assert results[0][0] == 'report_page1.png'
+    assert results[1][0] == 'report_page2.png'
+    mock_pix.tobytes.assert_called_with('png')
+
+@patch('export_gmail_attachments_to_nas.file_utils.exit_event')
+@patch('export_gmail_attachments_to_nas.file_utils.pymupdf.Document')
+def test_convert_attachment_pdf_to_jpeg(mock_document, mock_exit_event):
+    mock_exit_event.is_set.return_value = False
+    mock_pix = MagicMock()
+    mock_pix.tobytes.return_value = b'\xff\xd8'
+    mock_page = MagicMock()
+    mock_page.get_pixmap.return_value = mock_pix
+    mock_doc = MagicMock()
+    mock_doc.page_count = 1
+    mock_doc.load_page.return_value = mock_page
+    mock_document.return_value = mock_doc
+
+    results = convert_attachment('report.pdf', b'%PDF-data', 'jpg')
+    assert len(results) == 1
+    assert results[0][0] == 'report_page1.jpg'
+    mock_pix.tobytes.assert_called_with('jpeg')
+
+@patch('export_gmail_attachments_to_nas.file_utils.script_logger')
+@patch('export_gmail_attachments_to_nas.file_utils.pymupdf.Document')
+def test_convert_attachment_pdf_to_png_error(mock_document, mock_logger):
+    mock_document.side_effect = Exception("PDF error")
+    results = convert_attachment('report.pdf', b'%PDF-data', 'png')
+    assert results == []
+    mock_logger.error.assert_called_once_with("Error converting report.pdf to png: PDF error")
+
+@patch('export_gmail_attachments_to_nas.file_utils.script_logger')
+def test_convert_attachment_unsupported_format(mock_logger):
+    results = convert_attachment('image.png', b'image-data', 'pdf')
+    assert results == []
+    mock_logger.warning.assert_called_once_with(
+        "Conversion from .png to pdf not supported for image.png."
+    )
+
+@patch('export_gmail_attachments_to_nas.file_utils.exit_event')
+@patch('export_gmail_attachments_to_nas.file_utils.pymupdf.Document')
+def test_convert_attachment_pdf_to_png_exit_event(mock_document, mock_exit_event):
+    mock_exit_event.is_set.return_value = True
+    mock_doc = MagicMock()
+    mock_doc.page_count = 3
+    mock_document.return_value = mock_doc
+
+    results = convert_attachment('report.pdf', b'%PDF-data', 'png')
+    assert results == []
 
 if __name__ == '__main__':
     pytest.main()

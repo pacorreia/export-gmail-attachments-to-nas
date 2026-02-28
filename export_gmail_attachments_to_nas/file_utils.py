@@ -59,6 +59,53 @@ def extract_text_from_pdf(file_data):
         script_logger.error(f"Error extracting text from PDF: {e}")
         return ""
 
+def convert_attachment(filename, file_data, target_format):
+    """
+    Convert an attachment file to the specified target format using pymupdf.
+
+    Supported conversions:
+        - PDF → txt  (text extraction)
+        - PDF → png  (one image per page)
+        - PDF → jpeg (one image per page)
+
+    Args:
+        filename: Original filename
+        file_data: Binary file data
+        target_format: Target format string (e.g., 'txt', 'png', 'jpeg', 'jpg')
+
+    Returns:
+        List of (new_filename, converted_data) tuples, or empty list if the
+        conversion is not supported or an error occurs.
+    """
+    source_ext = os.path.splitext(filename.lower())[1]
+    target_format = target_format.lower().lstrip('.')
+
+    if source_ext == '.pdf':
+        if target_format == 'txt':
+            text = extract_text_from_pdf(file_data)
+            new_filename = os.path.splitext(filename)[0] + '.txt'
+            return [(new_filename, text.encode('utf-8'))]
+        if target_format in ('png', 'jpeg', 'jpg'):
+            results = []
+            try:
+                pdf_document = pymupdf.Document(stream=file_data, filetype="pdf")
+                pixmap_format = 'jpeg' if target_format == 'jpg' else target_format
+                file_extension = 'jpg' if target_format == 'jpg' else target_format
+                for page_num in range(pdf_document.page_count):
+                    if exit_event.is_set():
+                        break
+                    page = pdf_document.load_page(page_num)
+                    pix = page.get_pixmap()
+                    img_data = pix.tobytes(pixmap_format)
+                    new_filename = os.path.splitext(filename)[0] + f'_page{page_num + 1}.{file_extension}'
+                    results.append((new_filename, img_data))
+            except Exception as e:
+                script_logger.error(f"Error converting {filename} to {target_format}: {e}")
+            return results
+
+    script_logger.warning(f"Conversion from {source_ext} to {target_format} not supported for {filename}.")
+    return []
+
 @retry(tries=5, delay=2, backoff=2, exceptions=(Exception,))
 def save_attachment(smb_server, smb_folder, filename, file_data, username, password, content_filters=None):
     """
