@@ -47,6 +47,42 @@ Each rule in `criteria.json` can control whether the source email is deleted aft
 }
 ```
 
+#### Convert option
+
+Each rule can optionally include a `convert` section to automatically convert saved attachments to another format and store the result in a separate output folder.
+
+Supported conversions:
+- PDF → `txt` (text extraction)
+- PDF → `png` (one image per page)
+- PDF → `jpeg` / `jpg` (one image per page)
+
+Optional selectors control which attachments are converted:
+- `extension_filter`: list of file extensions — only attachments whose extension matches will be converted.
+- `filename_filter`: a regular expression — only attachments whose filename matches (case-insensitive) will be converted.
+
+```json
+{
+	"enabled": true,
+	"query": "subject:Invoice filename:.pdf",
+	"smb_folder": "\\documents\\faturas",
+	"filters": [".pdf"],
+	"delete_after_save": false,
+	"convert": {
+		"to": "txt",
+		"output_folder": "\\documents\\converted",
+		"extension_filter": [".pdf"],
+		"filename_filter": "invoice.*"
+	}
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `to` | ✅ | Target format: `txt`, `png`, `jpeg`, or `jpg` |
+| `output_folder` | ✅ | SMB folder path where converted files are saved |
+| `extension_filter` | ❌ | Restrict conversion to attachments with these extensions |
+| `filename_filter` | ❌ | Restrict conversion to filenames matching this regex |
+
 ## Dependencies
 
 This project requires the following Python packages:

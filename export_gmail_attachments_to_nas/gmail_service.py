@@ -1,6 +1,7 @@
 import base64
 import json
 import os
+import re
 import time
 from .logging_config import configure_logging
 from datetime import datetime
@@ -14,7 +15,7 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from retry import retry
 
-from .file_utils import sanitize_filename, save_attachment, extract_email_address
+from .file_utils import sanitize_filename, save_attachment, extract_email_address, convert_attachment
 
 # Configure logger
 script_logger = configure_logging()
@@ -104,7 +105,7 @@ def fetch_messages(service, query, exit_event):
             break
     return messages
 
-def process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, content_filters=None, delete_after_save=False):
+def process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, content_filters=None, delete_after_save=False, convert=None):
     """
     Process a single email message and save attachments.
     
@@ -118,6 +119,12 @@ def process_email(service, msg_id, smb_server, smb_folder, filters, username, pa
         password: SMB password
         exit_event: Threading event to signal early termination
         content_filters: Optional list of strings to filter attachment content
+        delete_after_save: Whether to delete the email after saving attachments
+        convert: Optional dict specifying conversion options:
+            - 'to': target format string (e.g., 'txt', 'png', 'jpeg')
+            - 'output_folder': SMB folder path for converted files
+            - 'extension_filter': optional list of extensions to convert (e.g., ['.pdf'])
+            - 'filename_filter': optional regex pattern to match filenames for conversion
     """
     if exit_event.is_set():
         script_logger.info("Exit requested. Stopping email processing.")
@@ -158,6 +165,25 @@ def process_email(service, msg_id, smb_server, smb_folder, filters, username, pa
                     except Exception as e:
                         script_logger.error(f"Failed to save attachment {filename}: {e}")
                         attachment_saved = False  # pragma: no cover
+
+                    if convert:
+                        convert_ext_filter = convert.get('extension_filter', [])
+                        convert_name_filter = convert.get('filename_filter')
+                        should_convert = True
+                        if convert_ext_filter and not any(filename.lower().endswith(ext) for ext in convert_ext_filter):
+                            should_convert = False
+                        if should_convert and convert_name_filter:
+                            if not re.search(convert_name_filter, filename, re.IGNORECASE):
+                                should_convert = False
+                        if should_convert:
+                            target_format = convert['to']
+                            convert_output_folder = os.path.join(f"\\\\{smb_server}", convert['output_folder'], sender_email, str(year), str(month), str(day))
+                            for new_filename, converted_data in convert_attachment(filename, file_data, target_format):
+                                try:
+                                    save_attachment(smb_server, convert_output_folder, new_filename, converted_data, username, password)
+                                    script_logger.info(f"Saved converted attachment to {os.path.join(convert_output_folder, new_filename)}")
+                                except Exception as e:
+                                    script_logger.error(f"Failed to save converted attachment {new_filename}: {e}")
 
         if attachment_saved and delete_after_save:
             try:
@@ -204,6 +230,7 @@ def process_emails(service, since_date, username, password, criteria_data, exit_
         filters = criterion.get("filters", [])
         content_filters = criterion.get("attachment_content_filter", [])
         delete_after_save = criterion.get("delete_after_save", False)
+        convert = criterion.get("convert", None)
         full_query = f'{base_query} {query}'
         script_logger.info(f"Query: {full_query}")
 
@@ -211,10 +238,10 @@ def process_emails(service, since_date, username, password, criteria_data, exit_
         script_logger.info(f"Total messages retrieved for query '{query}': {len(messages)}")
 
         for msg in messages:
-            messages_with_smb_folder.append((msg['id'], smb_folder, filters, content_filters, delete_after_save))
+            messages_with_smb_folder.append((msg['id'], smb_folder, filters, content_filters, delete_after_save, convert))
 
     # Process emails iteratively
-    for msg_id, smb_folder, filters, content_filters, delete_after_save in messages_with_smb_folder:
+    for msg_id, smb_folder, filters, content_filters, delete_after_save, convert in messages_with_smb_folder:
         if exit_event.is_set():
             script_logger.info("Exit requested. Stopping email processing.")
             return
@@ -230,6 +257,7 @@ def process_emails(service, since_date, username, password, criteria_data, exit_
                 exit_event,
                 content_filters,
                 delete_after_save=delete_after_save,
+                convert=convert,
             )
         except Exception as e:
             script_logger.error(f"Error processing email: {e}")

@@ -49,6 +49,7 @@ def test_process_emails(mock_process_email, mock_fetch_messages):
         mock_exit_event,
         [],
         delete_after_save=False,
+        convert=None,
     )
 
 def test_fetch_messages():
@@ -184,3 +185,43 @@ def test_process_emails_exception_in_executor(mock_process_email, mock_script_lo
     # Assertions
     mock_script_logger.error.assert_called_with("Error processing email: Test exception")
     mock_exit_event.is_set.assert_called()
+@patch('export_gmail_attachments_to_nas.gmail_service.script_logger', Mock())
+@patch('export_gmail_attachments_to_nas.gmail_service.fetch_messages')
+@patch('export_gmail_attachments_to_nas.gmail_service.process_email')
+def test_process_emails_with_convert(mock_process_email, mock_fetch_messages):
+    mock_service = Mock()
+    mock_exit_event = Mock()
+    mock_exit_event.is_set.return_value = False
+    mock_fetch_messages.return_value = [{'id': 'test_msg_id'}]
+    mock_process_email.return_value = None
+
+    convert_option = {'to': 'txt', 'output_folder': '\\converted'}
+    criteria_data = {
+        'criteria': [
+            {
+                'enabled': True,
+                'query': 'test_query',
+                'smb_folder': 'test_folder',
+                'filters': ['.pdf'],
+                'attachment_content_filter': [],
+                'convert': convert_option,
+            }
+        ],
+        'smb_server': 'test_server'
+    }
+
+    process_emails(mock_service, date_parser.parse('2023-01-01T00:00:00Z'), 'username', 'password', criteria_data, mock_exit_event)
+
+    mock_process_email.assert_called_once_with(
+        mock_service,
+        'test_msg_id',
+        'test_server',
+        'test_folder',
+        ['.pdf'],
+        'username',
+        'password',
+        mock_exit_event,
+        [],
+        delete_after_save=False,
+        convert=convert_option,
+    )
