@@ -1,11 +1,11 @@
-# Email Attachment Extraction
+# export-gmail-attachments-to-nas
 
 [![GitHub last commit](https://img.shields.io/github/last-commit/pacorreia/export-gmail-attachments-to-nas)](https://github.com/pacorreia/export-gmail-attachments-to-nas/commits/main)
 [![License: MIT](https://img.shields.io/github/license/pacorreia/export-gmail-attachments-to-nas)](https://github.com/pacorreia/export-gmail-attachments-to-nas/blob/main/LICENSE)
 
 ## Description
 
-`email-extraction` is a Python package for extracting email attachments and saving them to a NAS server. This package leverages various Google APIs and other libraries to facilitate the extraction and storage process.
+`export-gmail-attachments-to-nas` is a Python package for extracting email attachments and saving them to a NAS server. This package leverages various Google APIs and other libraries to facilitate the extraction and storage process.
 
 ## Installation
 
@@ -32,7 +32,7 @@ pip install .
 
 To use the package, you can run the command line script provided:
 
-`email-extraction`
+`export-gmail-attachments-to-nas`
 
 This will execute the main function defined in the main module.
 
