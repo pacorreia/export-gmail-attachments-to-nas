@@ -121,6 +121,11 @@ def _smb_patches(saved_files):
     return stack
 
 
+def _filenames(saved_files):
+    """Return just the base filenames from the paths in *saved_files*."""
+    return [p.split('/')[-1] if '/' in p else p.split('\\')[-1] for p in saved_files]
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -203,7 +208,7 @@ def test_e2e_multiple_emails_all_attachments_saved():
         )
 
     assert len(saved_files) == 2
-    saved_names = [p.split('/')[-1] if '/' in p else p.split('\\')[-1] for p in saved_files]
+    saved_names = _filenames(saved_files)
     assert 'report.pdf' in saved_names
     assert 'summary.pdf' in saved_names
 
@@ -277,3 +282,201 @@ def test_e2e_attachment_skipped_when_content_filter_not_matched():
         )
 
     assert len(saved_files) == 0
+
+
+def test_e2e_convert_pdf_to_png_saved_to_output_folder():
+    """E2E: PDF attachment is saved and also converted to PNG pages in the output folder."""
+    attachment_data = b'%PDF-1.4 fake pdf content'
+    raw_email = _build_raw_email(
+        subject='Report',
+        sender='Dave <dave@example.com>',
+        date_str='Fri, 05 Apr 2024 11:00:00 +0000',
+        attachments=[('report.pdf', attachment_data)],
+    )
+
+    mock_service = _make_gmail_service({'msg1': raw_email})
+    saved_files = {}
+
+    criteria_data = {
+        'smb_server': 'nas-server',
+        'criteria': [{
+            'enabled': True,
+            'query': 'has:attachment',
+            'smb_folder': 'Originals',
+            'filters': ['.pdf'],
+            'convert': {
+                'to': 'png',
+                'output_folder': 'ConvertedPNGs',
+            },
+        }],
+    }
+
+    fake_png_pages = [
+        ('report_page1.png', b'\x89PNG\r\n\x1a\npage1'),
+        ('report_page2.png', b'\x89PNG\r\n\x1a\npage2'),
+    ]
+
+    with _smb_patches(saved_files), \
+         patch('export_gmail_attachments_to_nas.gmail_service.convert_attachment',
+               return_value=fake_png_pages):
+        process_emails(
+            mock_service,
+            datetime(2024, 1, 1),
+            'nasuser', 'naspass',
+            criteria_data,
+            threading.Event(),
+        )
+
+    saved_names = _filenames(saved_files)
+    assert 'report.pdf' in saved_names
+    assert 'report_page1.png' in saved_names
+    assert 'report_page2.png' in saved_names
+    # Converted pages must land in the convert output folder, not the originals folder
+    for path in saved_files:
+        if path.endswith('.png'):
+            assert 'ConvertedPNGs' in path
+        if path.endswith('.pdf'):
+            assert 'Originals' in path
+
+
+def test_e2e_convert_pdf_to_jpg_saved_to_output_folder():
+    """E2E: PDF attachment is saved and also converted to JPG pages in the output folder."""
+    attachment_data = b'%PDF-1.4 fake pdf content'
+    raw_email = _build_raw_email(
+        subject='Photos',
+        sender='Eve <eve@example.com>',
+        date_str='Sat, 06 Apr 2024 12:00:00 +0000',
+        attachments=[('photos.pdf', attachment_data)],
+    )
+
+    mock_service = _make_gmail_service({'msg1': raw_email})
+    saved_files = {}
+
+    criteria_data = {
+        'smb_server': 'nas-server',
+        'criteria': [{
+            'enabled': True,
+            'query': 'has:attachment',
+            'smb_folder': 'Originals',
+            'filters': ['.pdf'],
+            'convert': {
+                'to': 'jpg',
+                'output_folder': 'ConvertedJPGs',
+            },
+        }],
+    }
+
+    fake_jpg_pages = [('photos_page1.jpg', b'\xff\xd8\xff\xe0page1')]
+
+    with _smb_patches(saved_files), \
+         patch('export_gmail_attachments_to_nas.gmail_service.convert_attachment',
+               return_value=fake_jpg_pages):
+        process_emails(
+            mock_service,
+            datetime(2024, 1, 1),
+            'nasuser', 'naspass',
+            criteria_data,
+            threading.Event(),
+        )
+
+    saved_names = _filenames(saved_files)
+    assert 'photos.pdf' in saved_names
+    assert 'photos_page1.jpg' in saved_names
+    for path in saved_files:
+        if path.endswith('.jpg'):
+            assert 'ConvertedJPGs' in path
+        if path.endswith('.pdf'):
+            assert 'Originals' in path
+
+
+def test_e2e_convert_skipped_when_extension_filter_not_matched():
+    """E2E: convert is skipped when extension_filter excludes the attachment type."""
+    attachment_data = b'%PDF-1.4 fake pdf content'
+    raw_email = _build_raw_email(
+        subject='Spec',
+        sender='Frank <frank@example.com>',
+        date_str='Sun, 07 Apr 2024 08:00:00 +0000',
+        attachments=[('spec.pdf', attachment_data)],
+    )
+
+    mock_service = _make_gmail_service({'msg1': raw_email})
+    saved_files = {}
+
+    criteria_data = {
+        'smb_server': 'nas-server',
+        'criteria': [{
+            'enabled': True,
+            'query': 'has:attachment',
+            'smb_folder': 'Originals',
+            'filters': ['.pdf'],
+            'convert': {
+                'to': 'png',
+                'output_folder': 'ConvertedPNGs',
+                'extension_filter': ['.docx'],  # .pdf does not match -> no conversion
+            },
+        }],
+    }
+
+    mock_convert = MagicMock(return_value=[('spec_page1.png', b'\x89PNG')])
+
+    with _smb_patches(saved_files), \
+         patch('export_gmail_attachments_to_nas.gmail_service.convert_attachment', mock_convert):
+        process_emails(
+            mock_service,
+            datetime(2024, 1, 1),
+            'nasuser', 'naspass',
+            criteria_data,
+            threading.Event(),
+        )
+
+    # Original PDF must be saved; conversion must not have run
+    saved_names = _filenames(saved_files)
+    assert 'spec.pdf' in saved_names
+    assert 'spec_page1.png' not in saved_names
+    mock_convert.assert_not_called()
+
+
+def test_e2e_convert_skipped_when_filename_filter_not_matched():
+    """E2E: convert is skipped when filename_filter regex does not match the attachment name."""
+    attachment_data = b'%PDF-1.4 fake pdf content'
+    raw_email = _build_raw_email(
+        subject='Receipt',
+        sender='Grace <grace@example.com>',
+        date_str='Mon, 08 Apr 2024 09:00:00 +0000',
+        attachments=[('receipt.pdf', attachment_data)],
+    )
+
+    mock_service = _make_gmail_service({'msg1': raw_email})
+    saved_files = {}
+
+    criteria_data = {
+        'smb_server': 'nas-server',
+        'criteria': [{
+            'enabled': True,
+            'query': 'has:attachment',
+            'smb_folder': 'Originals',
+            'filters': ['.pdf'],
+            'convert': {
+                'to': 'png',
+                'output_folder': 'ConvertedPNGs',
+                'filename_filter': r'invoice.*',  # 'receipt.pdf' does not match -> no conversion
+            },
+        }],
+    }
+
+    mock_convert = MagicMock(return_value=[('receipt_page1.png', b'\x89PNG')])
+
+    with _smb_patches(saved_files), \
+         patch('export_gmail_attachments_to_nas.gmail_service.convert_attachment', mock_convert):
+        process_emails(
+            mock_service,
+            datetime(2024, 1, 1),
+            'nasuser', 'naspass',
+            criteria_data,
+            threading.Event(),
+        )
+
+    saved_names = _filenames(saved_files)
+    assert 'receipt.pdf' in saved_names
+    assert 'receipt_page1.png' not in saved_names
+    mock_convert.assert_not_called()
