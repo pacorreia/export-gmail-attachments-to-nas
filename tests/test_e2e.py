@@ -113,7 +113,10 @@ def _smb_patches(saved_files):
     # not yet exist, so save_attachment proceeds to write it.
     stack.enter_context(patch(
         'export_gmail_attachments_to_nas.file_utils.smbclient.stat',
-        side_effect=smb_exceptions.SMBOSError(NtStatus.STATUS_OBJECT_NAME_NOT_FOUND, 'file'),
+        side_effect=smb_exceptions.SMBOSError(
+            ntstatus=NtStatus.STATUS_OBJECT_NAME_NOT_FOUND,
+            filename='file',
+        ),
     ))
     stack.enter_context(patch(
         'export_gmail_attachments_to_nas.file_utils.smbclient.open_file',
