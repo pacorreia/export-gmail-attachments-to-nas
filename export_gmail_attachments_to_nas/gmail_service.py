@@ -166,7 +166,7 @@ def process_email(service, msg_id, smb_server, smb_folder, filters, username, pa
                         script_logger.error(f"Failed to save attachment {filename}: {e}")
                         attachment_saved = False  # pragma: no cover
 
-                    if convert:
+                    if convert and convert.get('enabled', True):
                         convert_ext_filter = convert.get('extension_filter', [])
                         convert_name_filter = convert.get('filename_filter')
                         should_convert = True

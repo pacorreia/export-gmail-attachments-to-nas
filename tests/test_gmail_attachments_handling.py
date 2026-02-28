@@ -358,3 +358,37 @@ def test_convert_attachment_save_error_logged(
     process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, convert=convert)
 
     mock_logger.error.assert_called_with("Failed to save converted attachment invoice.txt: Save error")
+
+@patch('export_gmail_attachments_to_nas.gmail_service.base64.urlsafe_b64decode')
+@patch('export_gmail_attachments_to_nas.gmail_service.message_from_bytes')
+@patch('export_gmail_attachments_to_nas.gmail_service.date_parser.parse')
+@patch('export_gmail_attachments_to_nas.gmail_service.sanitize_filename')
+@patch('export_gmail_attachments_to_nas.gmail_service.extract_email_address')
+@patch('export_gmail_attachments_to_nas.gmail_service.save_attachment')
+@patch('export_gmail_attachments_to_nas.gmail_service.convert_attachment')
+def test_convert_not_called_when_convert_disabled(
+    mock_convert, mock_save_attachment, mock_extract_email_address,
+    mock_sanitize_filename, mock_date_parser, mock_message_from_bytes, mock_b64decode
+):
+    service = MagicMock()
+    msg_id = 'test_msg_id'
+    smb_server = 'test_smb_server'
+    smb_folder = 'test_smb_folder'
+    filters = ['.pdf']
+    username = 'test_user'
+    password = 'test_password'
+    exit_event = Event()
+    convert = {'enabled': False, 'to': 'txt', 'output_folder': '\\converted'}
+
+    msg = EmailMessage()
+    msg.set_payload('Email with attachment.')
+    msg['subject'] = 'Invoice'
+    msg['Date'] = 'Mon, 01 Jan 2021 00:00:00 -0000'
+    msg.add_attachment(b'PDF data', maintype='application', subtype='pdf', filename='invoice.pdf')
+    mock_message_from_bytes.return_value = msg
+    mock_date_parser.return_value = datetime(2021, 1, 1, 0, 0, 0)
+    mock_sanitize_filename.side_effect = lambda x: x
+
+    process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, convert=convert)
+
+    mock_convert.assert_not_called()
