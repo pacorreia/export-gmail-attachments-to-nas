@@ -366,7 +366,7 @@ def test_convert_attachment_save_error_logged(
 @patch('export_gmail_attachments_to_nas.gmail_service.extract_email_address')
 @patch('export_gmail_attachments_to_nas.gmail_service.save_attachment')
 @patch('export_gmail_attachments_to_nas.gmail_service.convert_attachment')
-def test_convert_not_called_when_convert_disabled(
+def test_convert_not_called_when_convert_absent(
     mock_convert, mock_save_attachment, mock_extract_email_address,
     mock_sanitize_filename, mock_date_parser, mock_message_from_bytes, mock_b64decode
 ):
@@ -378,7 +378,6 @@ def test_convert_not_called_when_convert_disabled(
     username = 'test_user'
     password = 'test_password'
     exit_event = Event()
-    convert = {'enabled': False, 'to': 'txt', 'output_folder': '\\converted'}
 
     msg = EmailMessage()
     msg.set_payload('Email with attachment.')
@@ -389,6 +388,6 @@ def test_convert_not_called_when_convert_disabled(
     mock_date_parser.return_value = datetime(2021, 1, 1, 0, 0, 0)
     mock_sanitize_filename.side_effect = lambda x: x
 
-    process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, convert=convert)
+    process_email(service, msg_id, smb_server, smb_folder, filters, username, password, exit_event, convert=None)
 
     mock_convert.assert_not_called()
