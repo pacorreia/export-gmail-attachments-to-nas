@@ -1,7 +1,7 @@
 # export-gmail-attachments-to-nas
 
 [![GitHub last commit](https://img.shields.io/github/last-commit/pacorreia/export-gmail-attachments-to-nas)](https://github.com/pacorreia/export-gmail-attachments-to-nas/commits/main)
-[![License: MIT](https://img.shields.io/github/license/pacorreia/export-gmail-attachments-to-nas)](https://github.com/pacorreia/export-gmail-attachments-to-nas/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/pacorreia/export-gmail-attachments-to-nas/blob/main/LICENSE)
 
 ## Description
 
