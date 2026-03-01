@@ -291,6 +291,20 @@ a {
   text-decoration: underline;
 }
 
+.muted-list {
+  color: var(--muted);
+  line-height: 1.9;
+  padding-left: 20px;
+}
+
+.code-panel--spaced {
+  margin-top: 16px;
+}
+
+.section-subheading {
+  margin-top: 32px;
+}
+
 code {
   font-family: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
   font-size: 0.95rem;
