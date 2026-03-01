@@ -158,7 +158,7 @@ export-gmail-attachments-to-nas \
               <tr><td><code>query</code></td><td>✅</td><td>Gmail search query (supports all Gmail search operators).</td></tr>
               <tr><td><code>smb_folder</code></td><td>✅</td><td>Destination folder on the SMB share.</td></tr>
               <tr><td><code>filters</code></td><td>❌</td><td>Optional list of file extensions to save (e.g. <code>[".pdf"]</code>). If omitted or empty, no attachments are saved for this rule.</td></tr>
-              <tr><td><code>attachment_content_filter</code></td><td>❌</td><td>Save only if the attachment contains at least one of these phrases.</td></tr>
+              <tr><td><code>attachment_content_filter</code></td><td>❌</td><td>Save only if the attachment contains at least one of these phrases (case-sensitive match).</td></tr>
               <tr><td><code>delete_after_save</code></td><td>❌</td><td>Delete the source email after a successful save. Defaults to <code>false</code>.</td></tr>
               <tr><td><code>convert</code></td><td>❌</td><td>Optional block to convert attachments. See <a href="#convert">Convert</a> section.</td></tr>
             </tbody>
