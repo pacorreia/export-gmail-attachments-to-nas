@@ -31,6 +31,7 @@
           <a href="#quickstart">Quick Start</a>
           <a href="#oauth">OAuth Setup</a>
           <a href="#config">Config</a>
+          <a href="#convert">Convert</a>
           <a href="#security">Security</a>
           <a href="#contributors">Contributors</a>
         </nav>
@@ -70,6 +71,7 @@
             <li>Search Gmail with filters and queries</li>
             <li>Save attachments by sender and date</li>
             <li>Optional content filtering</li>
+            <li>Convert attachments to txt, png, jpeg</li>
             <li>Reliable, retry-backed uploads</li>
           </ul>
           <div class="card-footer">
@@ -95,6 +97,10 @@
             <p>Scan PDF or text attachments for required phrases before saving.</p>
           </article>
           <article class="tile">
+            <h3>Attachment conversion</h3>
+            <p>Automatically convert saved PDFs to txt, png, or jpeg in a separate output folder.</p>
+          </article>
+          <article class="tile">
             <h3>Operational safety</h3>
             <p>Retries, logging, and optional delete-after-save keep runs clean.</p>
           </article>
@@ -117,7 +123,8 @@ export-gmail-attachments-to-nas \
       </section>
 
       <section id="config" class="section container">
-        <h2>Criteria Example</h2>
+        <h2>Criteria Configuration</h2>
+        <p>Create a <code>criteria.json</code> file to define your email processing rules. Each entry in <code>criteria</code> is evaluated independently.</p>
         <div class="code-panel">
           <pre><code>{
   "smb_server": "homenas.home.lan",
@@ -125,11 +132,76 @@ export-gmail-attachments-to-nas \
     {
       "enabled": true,
       "query": "{subject:Invoice subject:Receipt} filename:.pdf",
-      "smb_folder": "\\documents\\faturas",
-      "filters": [".pdf"]
+      "smb_folder": "\\documents\\invoices",
+      "filters": [".pdf"],
+      "attachment_content_filter": ["Invoice", "Total"],
+      "delete_after_save": false,
+      "convert": {
+        "to": "txt",
+        "output_folder": "\\documents\\invoices-txt",
+        "extension_filter": [".pdf"],
+        "filename_filter": "invoice.*"
+      }
     }
   ]
 }</code></pre>
+        </div>
+
+        <h3>Criteria fields</h3>
+        <div class="table-wrapper">
+          <table class="field-table">
+            <thead>
+              <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td>❌</td><td>Set to <code>false</code> to skip this rule. Defaults to <code>true</code>.</td></tr>
+              <tr><td><code>query</code></td><td>✅</td><td>Gmail search query (supports all Gmail search operators).</td></tr>
+              <tr><td><code>smb_folder</code></td><td>✅</td><td>Destination folder on the SMB share.</td></tr>
+              <tr><td><code>filters</code></td><td>❌</td><td>Optional list of file extensions to save (e.g. <code>[".pdf"]</code>). If omitted or empty, no attachments are saved for this rule.</td></tr>
+              <tr><td><code>attachment_content_filter</code></td><td>❌</td><td>Save only if the attachment contains at least one of these phrases (case-sensitive match).</td></tr>
+              <tr><td><code>delete_after_save</code></td><td>❌</td><td>Delete the source email after a successful save. Defaults to <code>false</code>.</td></tr>
+              <tr><td><code>convert</code></td><td>❌</td><td>Optional block to convert attachments. See <a href="#convert">Convert</a> section.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="convert" class="section container">
+        <h2>Attachment Conversion</h2>
+        <p>
+          Each rule can include a <code>convert</code> block to automatically convert saved attachments to another format
+          and store the result in a separate output folder. Omitting it leaves the rule's behaviour unchanged.
+        </p>
+
+        <h3>Supported conversions</h3>
+        <ul class="muted-list">
+          <li>PDF → <code>txt</code> — full text extraction</li>
+          <li>PDF → <code>png</code> — one image per page</li>
+          <li>PDF → <code>jpeg</code> / <code>jpg</code> — one image per page</li>
+        </ul>
+
+        <div class="code-panel code-panel--spaced">
+          <pre><code>"convert": {
+  "to": "txt",
+  "output_folder": "\\documents\\converted",
+  "extension_filter": [".pdf"],
+  "filename_filter": "invoice.*"
+}</code></pre>
+        </div>
+
+        <h3 class="section-subheading">Convert fields</h3>
+        <div class="table-wrapper">
+          <table class="field-table">
+            <thead>
+              <tr><th>Field</th><th>Required</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>to</code></td><td>✅</td><td>Target format: <code>txt</code>, <code>png</code>, <code>jpeg</code>, or <code>jpg</code>.</td></tr>
+              <tr><td><code>output_folder</code></td><td>✅</td><td>SMB folder path where converted files are saved.</td></tr>
+              <tr><td><code>extension_filter</code></td><td>❌</td><td>Restrict conversion to attachments with these extensions (e.g. <code>[".pdf"]</code>).</td></tr>
+              <tr><td><code>filename_filter</code></td><td>❌</td><td>Restrict conversion to filenames matching this regex (case-insensitive).</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
