@@ -83,11 +83,17 @@ func TestPlugin(w http.ResponseWriter, r *http.Request) {
 	switch p.Type {
 	case "webhook":
 		var cfg webhook.Config
-		json.Unmarshal([]byte(p.ConfigJSON), &cfg)
+		if unmarshalErr := json.Unmarshal([]byte(p.ConfigJSON), &cfg); unmarshalErr != nil {
+			writeError(w, "invalid webhook config: "+unmarshalErr.Error(), http.StatusBadRequest)
+			return
+		}
 		err = webhook.New(p.Label, cfg).OnAttachmentSaved(ctx, event)
 	case "subprocess":
 		var cfg subprocess.Config
-		json.Unmarshal([]byte(p.ConfigJSON), &cfg)
+		if unmarshalErr := json.Unmarshal([]byte(p.ConfigJSON), &cfg); unmarshalErr != nil {
+			writeError(w, "invalid subprocess config: "+unmarshalErr.Error(), http.StatusBadRequest)
+			return
+		}
 		err = subprocess.New(p.Label, cfg).OnAttachmentSaved(ctx, event)
 	default:
 		writeError(w, "unknown plugin type", http.StatusBadRequest)

@@ -580,9 +580,23 @@ async function renderLogs(page = 1) {
 }
 
 async function applyLogFilters() {
-  const accountMap = {};
-  const ruleMap = {};
+  const accountMap = Object.fromEntries(
+    [...document.querySelectorAll('#f-account option')].filter(o => o.value).map(o => [o.value, o.text])
+  );
+  const ruleMap = Object.fromEntries(
+    [...document.querySelectorAll('#f-rule option')].filter(o => o.value).map(o => [o.value, o.text])
+  );
   await loadLogsTable(1, accountMap, ruleMap);
+}
+
+async function applyLogFiltersPage(page) {
+  const accountMap = Object.fromEntries(
+    [...document.querySelectorAll('#f-account option')].filter(o => o.value).map(o => [o.value, o.text])
+  );
+  const ruleMap = Object.fromEntries(
+    [...document.querySelectorAll('#f-rule option')].filter(o => o.value).map(o => [o.value, o.text])
+  );
+  await loadLogsTable(page, accountMap, ruleMap);
 }
 
 async function loadLogsTable(page, accountMap, ruleMap) {
@@ -625,8 +639,8 @@ async function loadLogsTable(page, accountMap, ruleMap) {
     const pagination = `
       <div class="pagination">
         <span>Page ${page} of ${totalPages} (${total} total)</span>
-        ${page > 1 ? `<button class="btn btn-secondary btn-sm" onclick="loadLogsTable(${page - 1}, {}, {})">‹ Prev</button>` : ''}
-        ${page < totalPages ? `<button class="btn btn-secondary btn-sm" onclick="loadLogsTable(${page + 1}, {}, {})">Next ›</button>` : ''}
+        ${page > 1 ? `<button class="btn btn-secondary btn-sm" onclick="applyLogFiltersPage(${page - 1})">‹ Prev</button>` : ''}
+        ${page < totalPages ? `<button class="btn btn-secondary btn-sm" onclick="applyLogFiltersPage(${page + 1})">Next ›</button>` : ''}
       </div>`;
 
     if (wrap) wrap.innerHTML = items.length === 0
