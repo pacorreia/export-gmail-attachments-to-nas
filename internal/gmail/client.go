@@ -114,7 +114,7 @@ func walkParts(ctx context.Context, svc *gmailv1.Service, msgID string, part *gm
 				att, err := svc.Users.Messages.Attachments.Get("me", msgID, part.Body.AttachmentId).Context(ctx).Do()
 				if err != nil {
 					log.Printf("fetch attachment %s: %v", part.Body.AttachmentId, err)
-					break
+					continue
 				}
 				d, err := base64.URLEncoding.DecodeString(att.Data)
 				if err == nil {
