@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      DATABASE_URL: sqlite:///data/app.db
+      SECRET_KEY: changeme
+      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_SECRET: ""
+      OAUTH_REDIRECT_URL: http://localhost:8080/oauth/callback
