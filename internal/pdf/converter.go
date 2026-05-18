@@ -10,9 +10,15 @@ import (
 	"strings"
 )
 
+// PageImage holds a single converted page image.
+type PageImage struct {
+	Name string
+	Data []byte
+}
+
 // ConvertToImages converts a PDF file (given as bytes) to PNG images using pdftoppm.
-// Returns a slice of (filename, data) pairs, one per page.
-func ConvertToImages(ctx context.Context, originalName string, data []byte, dpi int) ([][2][]byte, error) {
+// Returns a slice of PageImage, one per page.
+func ConvertToImages(ctx context.Context, originalName string, data []byte, dpi int) ([]PageImage, error) {
 	if dpi <= 0 {
 		dpi = 150
 	}
@@ -53,14 +59,14 @@ func ConvertToImages(ctx context.Context, originalName string, data []byte, dpi 
 	sort.Strings(pngs)
 
 	baseName := strings.TrimSuffix(originalName, filepath.Ext(originalName))
-	var results [][2][]byte
+	var results []PageImage
 	for i, png := range pngs {
 		imgData, err := os.ReadFile(png)
 		if err != nil {
 			return nil, fmt.Errorf("read page %d: %w", i+1, err)
 		}
 		outName := fmt.Sprintf("%s_page_%03d.png", baseName, i+1)
-		results = append(results, [2][]byte{[]byte(outName), imgData})
+		results = append(results, PageImage{Name: outName, Data: imgData})
 	}
 	return results, nil
 }

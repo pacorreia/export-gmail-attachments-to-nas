@@ -177,10 +177,8 @@ func runSingleJob(ctx context.Context, rule models.Rule, acct models.Account, sh
 						continue
 					}
 					for _, img := range images {
-						imgName := string(img[0])
-						imgData := img[1]
-						imgPath := filepath.Join(subdir, imgName)
-						if err := backend2.Write(ctx, imgPath, imgData); err != nil {
+						imgPath := filepath.Join(subdir, img.Name)
+						if err := backend2.Write(ctx, imgPath, img.Data); err != nil {
 							logger.Printf("write png %s: %v", imgPath, err)
 						}
 					}

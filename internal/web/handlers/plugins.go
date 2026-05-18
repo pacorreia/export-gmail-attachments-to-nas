@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -89,8 +88,6 @@ func TestPlugin(w http.ResponseWriter, r *http.Request) {
 	case "subprocess":
 		var cfg subprocess.Config
 		json.Unmarshal([]byte(p.ConfigJSON), &cfg)
-		var stdout bytes.Buffer
-		_ = stdout
 		err = subprocess.New(p.Label, cfg).OnAttachmentSaved(ctx, event)
 	default:
 		writeError(w, "unknown plugin type", http.StatusBadRequest)
