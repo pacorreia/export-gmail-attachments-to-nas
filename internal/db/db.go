@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -30,8 +31,10 @@ func Open() error {
 		dialector = sqlite.Open(path)
 	case strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://"):
 		dialector = postgres.Open(dsn)
-	default:
+	case strings.HasPrefix(dsn, "sqlserver://"):
 		dialector = sqlserver.Open(dsn)
+	default:
+		return fmt.Errorf("unsupported DATABASE_URL scheme (use sqlite://, postgres://, or sqlserver://): %s", dsn)
 	}
 
 	var err error
