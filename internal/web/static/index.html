@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gmail Attachment Exporter</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="layout">
+    <nav class="sidebar">
+      <div class="sidebar-brand">📧 NAS Exporter</div>
+      <ul class="sidebar-nav">
+        <li><a href="#" onclick="navigate('accounts')">Accounts</a></li>
+        <li><a href="#" onclick="navigate('fileshares')">File Shares</a></li>
+        <li><a href="#" onclick="navigate('rules')">Rules</a></li>
+        <li><a href="#" onclick="navigate('plugins')">Plugins</a></li>
+        <li><a href="#" onclick="navigate('logs')">Run Logs</a></li>
+        <li><a href="#" onclick="navigate('settings')">Settings</a></li>
+      </ul>
+    </nav>
+    <main class="main-content">
+      <div id="main-content">
+        <div class="loading">Loading...</div>
+      </div>
+    </main>
+  </div>
+  <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModal(event)">
+    <div class="modal-box" id="modal-box"></div>
+  </div>
+  <div id="toast-container"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
