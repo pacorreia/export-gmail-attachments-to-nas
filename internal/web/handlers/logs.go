@@ -32,10 +32,16 @@ func ListLogs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var total int64
-	tx.Count(&total)
+	if err := tx.Count(&total).Error; err != nil {
+		writeError(w, "database error", http.StatusInternalServerError)
+		return
+	}
 
 	var logs []models.RunLog
-	tx.Limit(limit).Offset(offset).Find(&logs)
+	if err := tx.Limit(limit).Offset(offset).Find(&logs).Error; err != nil {
+		writeError(w, "database error", http.StatusInternalServerError)
+		return
+	}
 
 	writeJSON(w, map[string]interface{}{
 		"total": total,

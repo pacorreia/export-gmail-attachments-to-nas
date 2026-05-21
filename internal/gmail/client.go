@@ -60,7 +60,7 @@ func FetchMessage(ctx context.Context, svc *gmailv1.Service, msgID string) (*Mes
 		return nil, fmt.Errorf("get message %s: %w", msgID, err)
 	}
 
-	data, err := base64.URLEncoding.DecodeString(raw.Raw)
+	data, err := base64.RawURLEncoding.DecodeString(raw.Raw)
 	if err != nil {
 		return nil, fmt.Errorf("decode raw: %w", err)
 	}
@@ -106,7 +106,7 @@ func walkParts(ctx context.Context, svc *gmailv1.Service, msgID string, part *gm
 			}
 			var attData []byte
 			if part.Body != nil && part.Body.Data != "" {
-				d, err := base64.URLEncoding.DecodeString(part.Body.Data)
+				d, err := base64.RawURLEncoding.DecodeString(part.Body.Data)
 				if err == nil {
 					attData = d
 				}
@@ -116,7 +116,7 @@ func walkParts(ctx context.Context, svc *gmailv1.Service, msgID string, part *gm
 					log.Printf("fetch attachment %s: %v", part.Body.AttachmentId, err)
 					continue
 				}
-				d, err := base64.URLEncoding.DecodeString(att.Data)
+				d, err := base64.RawURLEncoding.DecodeString(att.Data)
 				if err == nil {
 					attData = d
 				}
