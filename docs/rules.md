@@ -65,12 +65,42 @@ This requires `poppler-utils` to be installed in the runtime environment. It is 
 
 ---
 
+## Delete after export
+
+When **Delete after export** is enabled on a rule, the Gmail message is permanently deleted after all its attachments have been successfully saved. Use with care — this is irreversible.
+
+> The message is only deleted if every file share save succeeds. A partial failure leaves the message in place.
+
+---
+
 ## Assignments
 
 A rule can be assigned to multiple **Gmail accounts** and multiple **file shares** simultaneously. Each combination runs independently — useful for mirroring the same attachments to a backup share, or exporting from several accounts under a single rule.
 
 ---
 
-## Scheduler interval
+## Run now
 
-The interval between rule runs is set globally in **Settings → Scheduler interval (minutes)**. The default is 60 minutes. Changes take effect after a service restart.
+Use the **Run now** button on any rule card to trigger an immediate execution outside the normal schedule. The run fires in the background; results appear in the **Logs** page.
+
+---
+
+## Schedule
+
+Each rule has its own schedule. When a rule's schedule is left empty it falls back to the global **Settings → Scheduler interval (minutes)** value (default: 60 minutes).
+
+### Schedule types
+
+| Type | Description |
+|---|---|
+| **Interval** | Repeat every N minutes, hours, or days (e.g. `30m`, `4h`, `7d`). Runs immediately when the service starts. |
+| **Daily** | Run once per day at a fixed time. |
+| **Weekly** | Run on selected days of the week at a fixed time. |
+| **Monthly** | Run on a specific day of the month at a fixed time. |
+| **Once** | Run at a single point in time, then stop. |
+
+All schedule types accept an optional **Until** date; the rule stops scheduling new runs after that date.
+
+### Global fallback interval
+
+The global interval is stored in the database and read on every tick — changing it in **Settings** takes effect at the next scheduled check, without a service restart.
