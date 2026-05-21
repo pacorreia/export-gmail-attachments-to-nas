@@ -24,6 +24,8 @@ Rules use [Gmail search operators](https://support.google.com/mail/answer/7190).
 
 > **Tip:** Use the **Preview** button in the rule builder to run the query against a real Gmail account and see up to 10 matching messages before saving the rule.
 
+> **Inline validation:** The query field validates your input as you type. If an operator is misspelled or its value is in the wrong format (for example `newer_than:30x` instead of `newer_than:30d`), a warning list appears below the field immediately — no need to save first.
+
 ---
 
 ## Subfolder template

@@ -3,13 +3,267 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Export Gmail attachments to a NAS server with filters and content checks." />
+    <meta name="description" content="Export Gmail attachments to a NAS server with a web UI, rules engine, and scheduled runs." />
     <title>Export Gmail Attachments to NAS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
   </head>
+  <body>
+    <div class="bg" aria-hidden="true">
+      <div class="orb orb-a"></div>
+      <div class="orb orb-b"></div>
+      <div class="orb orb-c"></div>
+    </div>
+
+    <header class="site-header">
+      <div class="container">
+        <div class="brand">
+          <div class="brand-mark">EG</div>
+          <div>
+            <div class="brand-title">Export Gmail Attachments</div>
+            <div class="brand-sub">to NAS</div>
+          </div>
+        </div>
+        <nav class="nav">
+          <a href="#features">Features</a>
+          <a href="#quickstart">Quick Start</a>
+          <a href="#oauth">OAuth Setup</a>
+          <a href="#config">Config</a>
+          <a href="#security">Security</a>
+          <a href="#contributors">Contributors</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero container">
+        <div class="hero-text">
+          <p class="eyebrow">Gmail + NAS automation</p>
+          <h1>Save invoice and receipt attachments from Gmail to your NAS automatically.</h1>
+          <p class="lead">
+            A self-hosted Go web service with a browser UI. Define rules, connect Gmail accounts,
+            and let the scheduler handle the rest.
+          </p>
+          <div class="cta">
+            <a class="btn primary" href="https://github.com/pacorreia/export-gmail-attachments-to-nas">View Repository</a>
+            <a class="btn ghost" href="#quickstart">Get Started</a>
+          </div>
+          <div class="badges" aria-label="Project badges">
+            <a href="https://github.com/pacorreia/export-gmail-attachments-to-nas/actions/workflows/ci.yml">
+              <img alt="CI" src="https://github.com/pacorreia/export-gmail-attachments-to-nas/actions/workflows/ci.yml/badge.svg" />
+            </a>
+            <a href="https://github.com/pacorreia/export-gmail-attachments-to-nas/actions/workflows/bandit.yml">
+              <img alt="Security" src="https://github.com/pacorreia/export-gmail-attachments-to-nas/actions/workflows/bandit.yml/badge.svg" />
+            </a>
+            <img alt="License" src="https://img.shields.io/badge/License-MIT-2563eb" />
+            <img alt="Last Commit" src="https://img.shields.io/github/last-commit/pacorreia/export-gmail-attachments-to-nas?color=2563eb" />
+            <img alt="Issues" src="https://img.shields.io/github/issues/pacorreia/export-gmail-attachments-to-nas?color=2563eb" />
+          </div>
+        </div>
+        <div class="hero-card">
+          <div class="card-title">What it does</div>
+          <ul>
+            <li>Web UI — manage everything from a browser</li>
+            <li>Rules with Gmail query builder + inline validation</li>
+            <li>Structured subfolder templates (date, sender, subject)</li>
+            <li>PDF → PNG conversion via poppler</li>
+            <li>Multiple Gmail accounts and SMB shares per rule</li>
+            <li>Built-in scheduler with configurable interval</li>
+          </ul>
+          <div class="card-footer">
+            <span>Go 1.25+</span>
+            <span>Docker ready</span>
+            <span>SMB/NAS</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="features" class="section container">
+        <h2>Features</h2>
+        <div class="grid">
+          <article class="tile">
+            <h3>Browser-based UI</h3>
+            <p>Create and manage rules, accounts, and file shares from any browser. No CLI required.</p>
+          </article>
+          <article class="tile">
+            <h3>Gmail query builder</h3>
+            <p>Visual query builder with inline validation warns about unknown operators or bad values as you type.</p>
+          </article>
+          <article class="tile">
+            <h3>Structured storage</h3>
+            <p>Subfolder templates use <code>{year}</code>, <code>{month}</code>, <code>{sender}</code>, and more.</p>
+          </article>
+          <article class="tile">
+            <h3>PDF conversion</h3>
+            <p>Automatically convert saved PDFs to PNG images at 150 DPI using poppler-utils.</p>
+          </article>
+          <article class="tile">
+            <h3>Multi-account</h3>
+            <p>Connect several Gmail accounts and assign each rule to multiple accounts and shares simultaneously.</p>
+          </article>
+          <article class="tile">
+            <h3>Single Docker image</h3>
+            <p>One container ships the Go backend, embedded SolidJS UI, SQLite database, and poppler.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="quickstart" class="section container">
+        <h2>Quick Start</h2>
+        <p>The fastest way to run the service is with Docker Compose. Copy this into a <code>docker-compose.yml</code>:</p>
+        <div class="code-panel">
+          <pre><code>services:
+  gmail-nas:
+    image: ghcr.io/pacorreia/export-gmail-attachments-to-nas:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+    environment:
+      SECRET_KEY: "change-me-to-a-random-string"
+      GOOGLE_CLIENT_ID: "your-client-id.apps.googleusercontent.com"
+      GOOGLE_CLIENT_SECRET: "your-client-secret"
+      # PORT defaults to 8080
+      # DATABASE_URL defaults to sqlite:///data/app.db</code></pre>
+        </div>
+        <p>Then start it:</p>
+        <div class="code-panel">
+          <pre><code>docker compose up -d
+# Open http://localhost:8080 in your browser</code></pre>
+        </div>
+        <p>On first run, open <strong>Settings → Accounts</strong> to connect a Gmail account via OAuth, then create your first rule under <strong>Rules</strong>.</p>
+      </section>
+
+      <section id="oauth" class="section container">
+        <h2>Google OAuth Setup</h2>
+        <p>The service uses OAuth 2.0 to access Gmail on behalf of each connected account. You need to create credentials in Google Cloud Console once.</p>
+
+        <div class="setup-steps">
+          <div class="step">
+            <h3>1. Create a Google Cloud Project</h3>
+            <ol>
+              <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a></li>
+              <li>Click <strong>Select a Project</strong> → <strong>New Project</strong></li>
+              <li>Enter a project name (e.g., "Gmail Attachments Export") and click <strong>Create</strong></li>
+            </ol>
+          </div>
+
+          <div class="step">
+            <h3>2. Enable the Gmail API</h3>
+            <ol>
+              <li>Navigate to <strong>APIs &amp; Services</strong> → <strong>Library</strong></li>
+              <li>Search for "Gmail API" and click <strong>Enable</strong></li>
+            </ol>
+          </div>
+
+          <div class="step">
+            <h3>3. Create OAuth 2.0 Credentials</h3>
+            <ol>
+              <li>Go to <strong>APIs &amp; Services</strong> → <strong>Credentials</strong> → <strong>+ Create Credentials</strong> → <strong>OAuth client ID</strong></li>
+              <li>If prompted, configure the consent screen: choose <strong>External</strong>, fill in the app name, and add the scope <code>https://mail.google.com/</code></li>
+              <li>Set the application type to <strong>Web application</strong></li>
+              <li>Add an authorized redirect URI: <code>http://localhost:8080/oauth/callback</code> (or your public URL)</li>
+              <li>Click <strong>Create</strong> and copy the <strong>Client ID</strong> and <strong>Client Secret</strong></li>
+            </ol>
+          </div>
+
+          <div class="step">
+            <h3>4. Configure the service</h3>
+            <ol>
+              <li>Set <code>GOOGLE_CLIENT_ID</code> and <code>GOOGLE_CLIENT_SECRET</code> environment variables (or update your <code>docker-compose.yml</code>)</li>
+              <li>Restart the container, then open the UI and go to <strong>Settings → Accounts → Add Account</strong></li>
+              <li>Complete the Gmail consent flow in the browser — the token is stored encrypted in the database</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section id="config" class="section container">
+        <h2>Environment Variables</h2>
+        <div class="table-wrapper">
+          <table class="field-table">
+            <thead>
+              <tr><th>Variable</th><th>Required</th><th>Default</th><th>Description</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>SECRET_KEY</code></td><td>✅</td><td>—</td><td>Encryption key for OAuth tokens and SMB passwords (AES-256-GCM). Service will not start without it.</td></tr>
+              <tr><td><code>GOOGLE_CLIENT_ID</code></td><td>✅</td><td>—</td><td>Google Cloud OAuth2 client ID</td></tr>
+              <tr><td><code>GOOGLE_CLIENT_SECRET</code></td><td>✅</td><td>—</td><td>Google Cloud OAuth2 client secret</td></tr>
+              <tr><td><code>DATABASE_URL</code></td><td>❌</td><td><code>sqlite:///data/app.db</code></td><td>Database connection string. Supports <code>sqlite://</code>, <code>postgres://</code>, <code>sqlserver://</code>.</td></tr>
+              <tr><td><code>PORT</code></td><td>❌</td><td><code>8080</code></td><td>HTTP port the server listens on.</td></tr>
+              <tr><td><code>OAUTH_REDIRECT_URL</code></td><td>❌</td><td><code>http://localhost:8080/oauth/callback</code></td><td>OAuth2 redirect URI — must match the Google Cloud console setting.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="security" class="section container">
+        <h2>Security Notes</h2>
+        <div class="grid">
+          <article class="tile">
+            <h3>Secret key</h3>
+            <p>Generate a strong random value: <code>openssl rand -hex 32</code>. Never reuse across environments.</p>
+          </article>
+          <article class="tile">
+            <h3>Token encryption</h3>
+            <p>OAuth tokens and SMB passwords are stored encrypted at rest with AES-256-GCM using your SECRET_KEY.</p>
+          </article>
+          <article class="tile">
+            <h3>OAuth scope</h3>
+            <p>The service requests the <code>https://mail.google.com/</code> scope, which is the minimum needed for reading and optionally deleting messages.</p>
+          </article>
+          <article class="tile">
+            <h3>NAS access</h3>
+            <p>Limit SMB share permissions to a dedicated service account with write access only to the target folders.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="contributors" class="section container">
+        <h2>Contributors</h2>
+        <p>Thanks to all the amazing people who have contributed to this project!</p>
+        <div id="contributors-list" class="contributors-grid">
+          <div class="loading">Loading contributors...</div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      fetch('https://api.github.com/repos/pacorreia/export-gmail-attachments-to-nas/contributors')
+        .then(response => response.json())
+        .then(contributors => {
+          const container = document.getElementById('contributors-list');
+          container.innerHTML = contributors.map(contributor => `
+            <a href="${contributor.html_url}" class="contributor" target="_blank" rel="noopener">
+              <img src="${contributor.avatar_url}" alt="${contributor.login}" />
+              <div class="contributor-name">${contributor.login}</div>
+              <div class="contributor-contributions">${contributor.contributions} contributions</div>
+            </a>
+          `).join('');
+        })
+        .catch(() => {
+          document.getElementById('contributors-list').innerHTML = '<p>Unable to load contributors.</p>';
+        });
+    </script>
+
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <div>
+          <div class="brand-title">Export Gmail Attachments to NAS</div>
+          <p>Built for fast, reliable attachment routing.</p>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/pacorreia/export-gmail-attachments-to-nas">GitHub</a>
+          <a href="https://github.com/pacorreia/export-gmail-attachments-to-nas/issues">Issues</a>
+          <a href="https://github.com/pacorreia/export-gmail-attachments-to-nas/releases">Releases</a>
+          <a href="https://github.com/pacorreia/export-gmail-attachments-to-nas/pkgs/container/export-gmail-attachments-to-nas">Container Registry</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
   <body>
     <div class="bg" aria-hidden="true">
       <div class="orb orb-a"></div>

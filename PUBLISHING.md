@@ -1,6 +1,80 @@
-# Publishing the Package
+# Publishing
 
-This guide explains how to publish the `export-gmail-attachments-to-nas` package using GitHub Releases and PyPI.
+This project is distributed as a Docker image, automatically built and pushed to the GitHub Container Registry (ghcr.io) on every GitHub Release.
+
+## Table of Contents
+- [Automated Docker publish (GitHub Actions)](#automated-docker-publish)
+- [Manual Docker build and push](#manual-docker-build-and-push)
+- [Running a specific release](#running-a-specific-release)
+
+---
+
+## Automated Docker publish
+
+The workflow [`.github/workflows/publish-package.yml`](.github/workflows/publish-package.yml) triggers on every published GitHub Release. It:
+
+1. Builds a multi-arch Docker image (`linux/amd64`, `linux/arm64`) — including the frontend build step.
+2. Pushes it to `ghcr.io/pacorreia/export-gmail-attachments-to-nas` with the version tag and `latest`.
+
+**Steps to publish a new release:**
+
+1. **Update the version tag** (optional — the image tag comes from the git tag):
+   ```bash
+   git tag v1.2.0
+   git push origin v1.2.0
+   ```
+
+2. **Create a GitHub Release** from the tag:
+   - Go to your repo → **Releases** → **Draft a new release**
+   - Select the tag you just pushed (`v1.2.0`)
+   - Fill in release title and notes
+   - Click **Publish release**
+
+3. The `Publish Docker Image` workflow runs automatically and pushes:
+   - `ghcr.io/pacorreia/export-gmail-attachments-to-nas:1.2.0`
+   - `ghcr.io/pacorreia/export-gmail-attachments-to-nas:1.2`
+   - `ghcr.io/pacorreia/export-gmail-attachments-to-nas:latest`
+
+No additional secrets are needed — the workflow uses `GITHUB_TOKEN` to authenticate with ghcr.io.
+
+---
+
+## Manual Docker build and push
+
+```bash
+# Build locally (includes Node.js frontend build inside the Dockerfile)
+docker build -t ghcr.io/pacorreia/export-gmail-attachments-to-nas:dev .
+
+# Push (requires docker login ghcr.io first)
+docker login ghcr.io -u <your-github-username> --password-stdin <<< "$GITHUB_TOKEN"
+docker push ghcr.io/pacorreia/export-gmail-attachments-to-nas:dev
+```
+
+Multi-arch build with buildx:
+```bash
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -t ghcr.io/pacorreia/export-gmail-attachments-to-nas:dev \
+  --push .
+```
+
+---
+
+## Running a specific release
+
+```bash
+# Pull and run a specific version
+docker run -d \
+  -p 8080:8080 \
+  -v ./data:/data \
+  -e SECRET_KEY=$(openssl rand -hex 32) \
+  -e GOOGLE_CLIENT_ID=your-client-id \
+  -e GOOGLE_CLIENT_SECRET=your-client-secret \
+  ghcr.io/pacorreia/export-gmail-attachments-to-nas:1.2.0
+
+# Or use docker compose (recommended)
+docker compose up -d
+```
 
 ## Table of Contents
 - [GitHub Releases](#github-releases) (Easiest, Automated)

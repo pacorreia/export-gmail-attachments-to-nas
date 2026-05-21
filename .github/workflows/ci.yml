@@ -7,74 +7,50 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
+  build-and-test:
+    runs-on: ubuntu-latest
     permissions:
       pull-requests: write
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        python-version: ['3.12', '3.13']
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          go-version-file: go.mod
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -e .
-
-      - name: Run tests with pytest
-        run: |
-          pytest tests/ -v --cov=export_gmail_attachments_to_nas --cov-report=xml --cov-report=term
-
-      - name: Code Coverage Summary Report
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
-        uses: irongut/CodeCoverageSummary@v1.3.0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          filename: ./coverage.xml
-          badge: true
-          fail_below_min: true
-          format: markdown
-          hide_branch_rate: false
-          hide_complexity: true
-          indicators: true
-          output: both
-          thresholds: '60 80'
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: internal/web/frontend/package-lock.json
 
-      - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
-        if: github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: internal/web/frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: internal/web/frontend
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Run tests with coverage
+        run: go test -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Coverage summary
+        run: go tool cover -func=coverage.out | tail -1
+
+      - name: Coverage report (PR comment)
+        if: github.event_name == 'pull_request'
+        uses: fgrosse/go-coverage-report@v1.2.0
         with:
-          recreate: true
-          path: code-coverage-results.md
+          coverage-artifact-name: coverage
+          coverage-file-name: coverage.out
 
-  lint:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8
-
-      - name: Lint with flake8
-        run: |
-          flake8 export_gmail_attachments_to_nas --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 export_gmail_attachments_to_nas --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Build binary
+        run: go build ./cmd/server

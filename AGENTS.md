@@ -24,23 +24,31 @@ tests/               e2e tests (httptest + in-memory SQLite)
 ## Non-Negotiable Rules
 
 ### SRP in `internal/web/`
+
 `server.go` is a pure router. Every handler lives in `internal/web/handlers/`. No inline `func(w, r)` closures in `server.go` — ever.
 
 One handler file per domain:
+
 - `health.go`, `accounts.go`, `fileshares.go`, `rules.go`, `plugins.go`, `logs.go`, `settings.go`
 - `helpers.go` holds only `writeJSON` and `writeError`
 
 When adding a new route, the pattern is:
+
 1. Create/update the handler in `handlers/<domain>.go`
 2. Register the route in `server.go`
 
+Documentation must always be updated, both README.md and whatever is in docs folder.
+
 ### Secrets at rest
+
 Sensitive values (SMB passwords, tokens) are **always** stored encrypted via `internal/crypto`. Model fields that hold encrypted data use `json:"-"`. The plain value is never persisted. When editing password fields, only re-encrypt if the incoming value is non-empty (to allow edits without re-entering the password).
 
 ### GORM models
+
 All models embed `gorm.DeletedAt` (soft-delete). Sensitive fields are tagged `json:"-"`. All models are defined in `internal/db/models/models.go`.
 
 ### Frontend conventions (SolidJS)
+
 - All HTTP calls go through `src/api.js` (`api(path, opts)`) — never `fetch` directly.
 - Toast notifications via `useToast()` context; modals via `useModal()` context.
 - Forms support both create and edit modes via a `props.share` / `props.rule` etc. prop — branch on its presence to choose POST vs PUT.
@@ -87,3 +95,9 @@ SECRET_KEY=dev-local-secret DATABASE_URL="sqlite://$(pwd)/data/app.db" PORT=9090
 5. Create `src/pages/<Resource>.jsx` with list + create/edit form
 6. Add page route in `src/App.jsx`
 7. Add handler tests in `internal/web/handlers/<resource>_test.go`
+
+## Githiub workflows
+
+- **CI**: runs on every push, runs `go test ./...` and `npm run build` to verify both backend and frontend
+
+
