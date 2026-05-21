@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -45,7 +46,10 @@ func CreateRule(w http.ResponseWriter, r *http.Request) {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	saveAssignments(rule.ID, req.AccountIDs, req.FileShareIDs)
+	if err := saveAssignments(rule.ID, req.AccountIDs, req.FileShareIDs); err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if scheduler.Default != nil {
 		scheduler.Default.Reload(rule.ID)
 	}
@@ -86,7 +90,10 @@ func UpdateRule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	db.DB.Where("rule_id = ?", rule.ID).Delete(&models.RuleAssignment{})
-	saveAssignments(rule.ID, req.AccountIDs, req.FileShareIDs)
+	if err := saveAssignments(rule.ID, req.AccountIDs, req.FileShareIDs); err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if scheduler.Default != nil {
 		scheduler.Default.Reload(rule.ID)
 	}
@@ -171,11 +178,14 @@ func ResetRuleCheckpoint(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func saveAssignments(ruleID uint, accountIDs, fileShareIDs []uint) {
+func saveAssignments(ruleID uint, accountIDs, fileShareIDs []uint) error {
 	for _, aid := range accountIDs {
 		for _, fsid := range fileShareIDs {
 			a := models.RuleAssignment{RuleID: ruleID, AccountID: aid, FileShareID: fsid}
-			db.DB.Where(a).FirstOrCreate(&a)
+			if err := db.DB.Where(a).FirstOrCreate(&a).Error; err != nil {
+				return fmt.Errorf("save assignment: %w", err)
+			}
 		}
 	}
+	return nil
 }

@@ -14,6 +14,14 @@ import (
 	"github.com/pacorreia/export-gmail-attachments-to-nas/internal/plugin/webhook"
 )
 
+// pluginRequest holds the user-controlled fields for create/update operations.
+type pluginRequest struct {
+	Label      string `json:"label"`
+	Type       string `json:"type"`
+	ConfigJSON string `json:"config_json"`
+	Enabled    bool   `json:"enabled"`
+}
+
 func ListPlugins(w http.ResponseWriter, r *http.Request) {
 	var plugins []models.PluginConfig
 	db.DB.Find(&plugins)
@@ -21,10 +29,16 @@ func ListPlugins(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreatePlugin(w http.ResponseWriter, r *http.Request) {
-	var p models.PluginConfig
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+	var req pluginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, "invalid request", http.StatusBadRequest)
 		return
+	}
+	p := models.PluginConfig{
+		Label:      req.Label,
+		Type:       req.Type,
+		ConfigJSON: req.ConfigJSON,
+		Enabled:    req.Enabled,
 	}
 	if err := db.DB.Create(&p).Error; err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
@@ -40,11 +54,19 @@ func UpdatePlugin(w http.ResponseWriter, r *http.Request) {
 		writeError(w, "not found", http.StatusNotFound)
 		return
 	}
-	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+	var req pluginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, "invalid request", http.StatusBadRequest)
 		return
 	}
-	db.DB.Save(&p)
+	p.Label = req.Label
+	p.Type = req.Type
+	p.ConfigJSON = req.ConfigJSON
+	p.Enabled = req.Enabled
+	if err := db.DB.Save(&p).Error; err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	writeJSON(w, p)
 }
 

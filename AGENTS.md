@@ -96,7 +96,7 @@ SECRET_KEY=dev-local-secret DATABASE_URL="sqlite://$(pwd)/data/app.db" PORT=9090
 6. Add page route in `src/App.jsx`
 7. Add handler tests in `internal/web/handlers/<resource>_test.go`
 
-## Githiub workflows
+## GitHub workflows
 
 - **CI**: runs on every push, runs `go test ./...` and `npm run build` to verify both backend and frontend
 

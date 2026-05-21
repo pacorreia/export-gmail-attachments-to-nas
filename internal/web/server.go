@@ -3,7 +3,10 @@ package web
 import (
 	"embed"
 	"io/fs"
+	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -13,6 +16,24 @@ import (
 
 //go:embed frontend/dist
 var staticFiles embed.FS
+
+// tokenAuth returns a middleware that enforces Bearer token authentication when
+// the WEBAPP_TOKEN environment variable is set. If the variable is empty, auth
+// is disabled and every request is allowed through.
+func tokenAuth(next http.Handler) http.Handler {
+	token := os.Getenv("WEBAPP_TOKEN")
+	if token == "" {
+		return next
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		if !strings.HasPrefix(auth, "Bearer ") || strings.TrimPrefix(auth, "Bearer ") != token {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 // NewRouter builds and returns the HTTP router.
 func NewRouter() http.Handler {
@@ -25,6 +46,8 @@ func NewRouter() http.Handler {
 	r.Get("/oauth/callback", gmail.CallbackHandler)
 
 	r.Route("/api", func(r chi.Router) {
+		r.Use(tokenAuth)
+
 		r.Get("/accounts", handlers.ListAccounts)
 		r.Delete("/accounts/{id}", handlers.DeleteAccount)
 		r.Post("/accounts/oauth/start", handlers.StartOAuth)
@@ -58,7 +81,10 @@ func NewRouter() http.Handler {
 		r.Put("/settings", handlers.UpdateSettings)
 	})
 
-	staticFS, _ := fs.Sub(staticFiles, "frontend/dist")
+	staticFS, err := fs.Sub(staticFiles, "frontend/dist")
+	if err != nil {
+		log.Fatalf("web: failed to access embedded frontend: %v", err)
+	}
 	r.Handle("/*", http.FileServer(http.FS(staticFS)))
 
 	return r
