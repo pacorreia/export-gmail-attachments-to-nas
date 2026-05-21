@@ -36,6 +36,7 @@ The service uses Google OAuth2 to access Gmail on behalf of your accounts. You n
 |---|---|---|---|
 | `SECRET_KEY` | ✅ | — | A strong random string used to derive the AES-256-GCM encryption key for OAuth tokens and SMB passwords. The service will **not start** if this is unset. Generate with: `openssl rand -hex 32` |
 | `DATABASE_URL` | ❌ | `sqlite:///data/app.db` | Database connection string (see below). |
+| `PORT` | ❌ | `8080` | HTTP port the server listens on. |
 | `GOOGLE_CLIENT_ID` | ✅ | — | OAuth2 client ID from Google Cloud Console |
 | `GOOGLE_CLIENT_SECRET` | ✅ | — | OAuth2 client secret from Google Cloud Console |
 | `OAUTH_REDIRECT_URL` | ❌ | `http://localhost:8080/oauth/callback` | Must match the redirect URI registered in Google Cloud Console |
