@@ -32,7 +32,6 @@ jobs:
           go-version-file: go.mod
           go-package: ./...
 
-jobs:
   bandit:
     permissions:
       contents: read # for actions/checkout to fetch code
