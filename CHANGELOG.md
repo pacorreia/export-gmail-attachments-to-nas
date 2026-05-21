@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/v1.1.0...v1.1.1) (2026-05-21)
+
+
+### Bug Fixes
+
+* **ci:** trigger Docker publish from release-please workflow output ([c287ef4](https://github.com/pacorreia/export-gmail-attachments-to-nas/commit/c287ef4a7dd05ca8f0a1f093ce71637d1327ef22))
+
 ## [1.1.0](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/1.0.0...v1.1.0) (2026-05-21)
 
 
