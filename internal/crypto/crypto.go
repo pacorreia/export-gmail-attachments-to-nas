@@ -8,23 +8,44 @@ import (
 	"encoding/base64"
 	"errors"
 	"io"
-	"log"
-	"os"
+	"sync"
 )
 
-var secretKey []byte
+var (
+	mu        sync.RWMutex
+	secretKey []byte
+)
 
-func init() {
-	key := os.Getenv("SECRET_KEY")
+// Init derives and stores the AES-GCM encryption key from key.
+// Must be called before Encrypt or Decrypt. Returns an error if key is empty.
+func Init(key string) error {
 	if key == "" {
-		log.Fatal("FATAL: SECRET_KEY environment variable is not set. Set a strong random value before starting.")
+		return errors.New("encryption key must not be empty")
 	}
 	h := sha256.Sum256([]byte(key))
+	mu.Lock()
 	secretKey = h[:]
+	mu.Unlock()
+	return nil
 }
 
+func activeKey() ([]byte, error) {
+	mu.RLock()
+	k := secretKey
+	mu.RUnlock()
+	if k == nil {
+		return nil, errors.New("crypto not initialised: call crypto.Init first")
+	}
+	return k, nil
+}
+
+// Encrypt AES-GCM encrypts plaintext and returns a base64-encoded ciphertext.
 func Encrypt(plaintext string) (string, error) {
-	block, err := aes.NewCipher(secretKey)
+	k, err := activeKey()
+	if err != nil {
+		return "", err
+	}
+	block, err := aes.NewCipher(k)
 	if err != nil {
 		return "", err
 	}
@@ -40,12 +61,17 @@ func Encrypt(plaintext string) (string, error) {
 	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
+// Decrypt AES-GCM decrypts a base64-encoded ciphertext produced by Encrypt.
 func Decrypt(ciphertext string) (string, error) {
+	k, err := activeKey()
+	if err != nil {
+		return "", err
+	}
 	data, err := base64.StdEncoding.DecodeString(ciphertext)
 	if err != nil {
 		return "", err
 	}
-	block, err := aes.NewCipher(secretKey)
+	block, err := aes.NewCipher(k)
 	if err != nil {
 		return "", err
 	}

@@ -43,6 +43,10 @@ type Rule struct {
 	SubfolderTemplate string         `json:"subfolder_template"`
 	ConvertPDFToImage bool           `json:"convert_pdf_to_image"`
 	Enabled           bool           `json:"enabled"`
+	// Schedule is either a Go duration string (e.g. "30m", "1h", "24h") or a JSON
+	// recurrence object starting with '{'. Empty falls back to global setting.
+	Schedule          string `json:"schedule"`
+	DeleteAfterExport bool   `json:"delete_after_export"`
 }
 
 type RuleAssignment struct {
@@ -79,4 +83,12 @@ type Setting struct {
 	ID    uint   `gorm:"primarykey" json:"id"`
 	Key   string `gorm:"uniqueIndex" json:"key"`
 	Value string `json:"value"`
+}
+
+// SyncCheckpoint records the last successful sync time per (rule, account) pair.
+// It is used to restrict the Gmail query to only new messages (after the checkpoint).
+type SyncCheckpoint struct {
+	RuleID    uint      `gorm:"primarykey" json:"rule_id"`
+	AccountID uint      `gorm:"primarykey" json:"account_id"`
+	SyncedAt  time.Time `json:"synced_at"`
 }

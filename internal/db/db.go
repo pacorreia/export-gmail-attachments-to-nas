@@ -51,12 +51,22 @@ func Open() error {
 		&models.PluginConfig{},
 		&models.RunLog{},
 		&models.Setting{},
+		&models.SyncCheckpoint{},
 	)
 	if err != nil {
 		return err
 	}
 	log.Println("Database ready")
 	return nil
+}
+
+// GetSetting returns the value stored for key, or defaultVal if not found.
+func GetSetting(key, defaultVal string) string {
+	var s models.Setting
+	if err := DB.Where("key = ?", key).First(&s).Error; err == nil {
+		return s.Value
+	}
+	return defaultVal
 }
 
 func parentDir(path string) string {

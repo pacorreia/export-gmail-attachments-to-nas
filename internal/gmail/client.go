@@ -158,3 +158,33 @@ func decodeHeader(s string) string {
 	}
 	return out
 }
+
+// Client abstracts Gmail API calls for testability.
+type Client interface {
+	SearchMessages(ctx context.Context, query string) ([]string, error)
+	FetchMessage(ctx context.Context, msgID string) (*Message, error)
+	TrashMessage(ctx context.Context, msgID string) error
+}
+
+// NewClient wraps a *gmailv1.Service in the Client interface.
+func NewClient(svc *gmailv1.Service) Client {
+	return &serviceClient{svc: svc}
+}
+
+type serviceClient struct{ svc *gmailv1.Service }
+
+func (c *serviceClient) SearchMessages(ctx context.Context, query string) ([]string, error) {
+	return SearchMessages(ctx, c.svc, query)
+}
+
+func (c *serviceClient) FetchMessage(ctx context.Context, msgID string) (*Message, error) {
+	return FetchMessage(ctx, c.svc, msgID)
+}
+
+func (c *serviceClient) TrashMessage(ctx context.Context, msgID string) error {
+	_, err := c.svc.Users.Messages.Trash("me", msgID).Context(ctx).Do()
+	if err != nil {
+		return fmt.Errorf("trash message %s: %w", msgID, err)
+	}
+	return nil
+}

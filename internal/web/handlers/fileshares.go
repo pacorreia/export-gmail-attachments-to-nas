@@ -59,6 +59,47 @@ func CreateFileShare(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, fs)
 }
 
+func UpdateFileShare(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var fs models.FileShare
+	if err := db.DB.First(&fs, id).Error; err != nil {
+		writeError(w, "not found", http.StatusNotFound)
+		return
+	}
+	var req struct {
+		Label    string `json:"label"`
+		Type     string `json:"type"`
+		Host     string `json:"host"`
+		Share    string `json:"share"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+		BasePath string `json:"base_path"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	fs.Label = req.Label
+	fs.Type = req.Type
+	fs.Host = req.Host
+	fs.Share = req.Share
+	fs.Username = req.Username
+	fs.BasePath = req.BasePath
+	if req.Password != "" {
+		enc, err := crypto.Encrypt(req.Password)
+		if err != nil {
+			writeError(w, "encrypt: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		fs.PasswordEnc = enc
+	}
+	if err := db.DB.Save(&fs).Error; err != nil {
+		writeError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	writeJSON(w, fs)
+}
+
 func DeleteFileShare(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if err := db.DB.Delete(&models.FileShare{}, id).Error; err != nil {
@@ -66,6 +107,43 @@ func DeleteFileShare(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// TestFileShareInline tests a connection using values from the request body,
+// without requiring the file share to exist in the database first.
+func TestFileShareInline(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Type     string `json:"type"`
+		Host     string `json:"host"`
+		Share    string `json:"share"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+		BasePath string `json:"base_path"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), 30*time.Second)
+	defer cancel()
+
+	var testErr error
+	switch req.Type {
+	case "local":
+		testErr = localfs.New(req.BasePath).Test(ctx)
+	case "smb":
+		testErr = smbfs.New(req.Host, req.Share, req.Username, req.Password).Test(ctx)
+	default:
+		writeError(w, "unknown type: "+req.Type, http.StatusBadRequest)
+		return
+	}
+
+	if testErr == nil {
+		writeJSON(w, map[string]interface{}{"ok": true})
+	} else {
+		writeJSON(w, map[string]interface{}{"ok": false, "error": testErr.Error()})
+	}
 }
 
 func TestFileShare(w http.ResponseWriter, r *http.Request) {

@@ -14,7 +14,10 @@ func ListLogs(w http.ResponseWriter, r *http.Request) {
 	if page < 1 {
 		page = 1
 	}
-	limit := 50
+	limit, _ := strconv.Atoi(q.Get("limit"))
+	if limit < 1 || limit > 200 {
+		limit = 25
+	}
 	offset := (page - 1) * limit
 
 	tx := db.DB.Model(&models.RunLog{}).Order("started_at desc")
@@ -37,6 +40,7 @@ func ListLogs(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]interface{}{
 		"total": total,
 		"page":  page,
+		"limit": limit,
 		"items": logs,
 	})
 }

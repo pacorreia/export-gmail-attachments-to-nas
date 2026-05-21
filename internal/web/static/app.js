@@ -239,6 +239,153 @@ async function deleteFileShare(id) {
   }
 }
 
+// ─────────────────────────── QUERY BUILDER ──────────────────────────────────
+
+const QB_TYPES = [
+  { id: 'has_attachment', label: 'Has Attachment',   op: 'has:attachment', noValue: true },
+  { id: 'from',           label: 'From',              op: 'from:',          placeholder: 'sender@example.com' },
+  { id: 'to',             label: 'To',                op: 'to:',            placeholder: 'recipient@example.com' },
+  { id: 'subject',        label: 'Subject contains',  op: 'subject:',       placeholder: 'Invoice' },
+  { id: 'filename',       label: 'Attachment name',   op: 'filename:',      placeholder: '*.pdf' },
+  { id: 'newer_than',     label: 'Newer than',        op: 'newer_than:',    placeholder: '30d · 6m · 1y' },
+  { id: 'older_than',     label: 'Older than',        op: 'older_than:',    placeholder: '30d · 6m · 1y' },
+  { id: 'label',          label: 'Has label',         op: 'label:',         placeholder: 'label-name' },
+  { id: 'is_unread',      label: 'Is unread',         op: 'is:unread',      noValue: true },
+  { id: 'larger',         label: 'Larger than',       op: 'larger:',        placeholder: '5M · 1024K' },
+  { id: 'smaller',        label: 'Smaller than',      op: 'smaller:',       placeholder: '5M · 1024K' },
+  { id: 'custom',         label: 'Custom …',          op: '',               placeholder: 'any:query token' },
+];
+
+let _qbConditions = [];
+
+function qbAddCondition(type) {
+  _qbConditions.push({ type: type || 'has_attachment', value: '', negate: false, join: 'AND' });
+  _qbRender();
+}
+
+function qbRemoveCondition(idx) {
+  _qbConditions.splice(idx, 1);
+  _qbRender();
+}
+
+function qbChangeType(idx, type) {
+  _qbConditions[idx].type = type;
+  _qbConditions[idx].value = '';
+  _qbRender();
+}
+
+function qbChangeValue(idx, value) {
+  _qbConditions[idx].value = value;
+  _qbSync();
+}
+
+function qbToggleNegate(idx, checked) {
+  _qbConditions[idx].negate = checked;
+  _qbSync();
+}
+
+function qbChangeJoin(idx, join) {
+  _qbConditions[idx].join = join;
+  _qbSync();
+}
+
+function _qbBuildQuery() {
+  const parts = [];
+  for (let i = 0; i < _qbConditions.length; i++) {
+    const c = _qbConditions[i];
+    const def = QB_TYPES.find(t => t.id === c.type);
+    if (!def) continue;
+    let token;
+    if (def.id === 'custom') {
+      token = c.value.trim();
+      if (!token) continue;
+    } else if (def.noValue) {
+      token = def.op;
+    } else {
+      if (!c.value.trim()) continue;
+      const v = c.value.trim();
+      token = def.op + (v.includes(' ') ? `"${v}"` : v);
+    }
+    if (c.negate) token = '-' + token;
+    if (parts.length > 0) {
+      parts.push(c.join === 'OR' ? 'OR' : '');
+    }
+    parts.push(token);
+  }
+  return parts.filter(p => p !== '').join(' ');
+}
+
+function _qbSync() {
+  const el = document.querySelector('#rule-form [name="gmail_query"]');
+  if (el) el.value = _qbBuildQuery();
+}
+
+function _qbRender() {
+  const container = document.getElementById('qb-rows');
+  if (!container) return;
+  container.innerHTML = _qbConditions.map((c, i) => {
+    const def = QB_TYPES.find(t => t.id === c.type);
+    const typeOpts = QB_TYPES.map(t =>
+      `<option value="${t.id}"${t.id === c.type ? ' selected' : ''}>${esc(t.label)}</option>`
+    ).join('');
+    const valueCell = (def && !def.noValue)
+      ? `<input class="qb-value" type="text" value="${esc(c.value)}"
+             placeholder="${esc(def.placeholder || '')}"
+             oninput="qbChangeValue(${i}, this.value)">`
+      : `<span class="qb-no-value"></span>`;
+    const joinBar = i > 0
+      ? `<div class="qb-join">
+           <button type="button" class="qb-join-btn${c.join !== 'OR' ? ' active' : ''}" onclick="qbChangeJoin(${i},'AND')">AND</button>
+           <button type="button" class="qb-join-btn${c.join === 'OR' ? ' active' : ''}" onclick="qbChangeJoin(${i},'OR')">OR</button>
+         </div>`
+      : '';
+    return `${joinBar}<div class="qb-row">
+        <select class="qb-type" onchange="qbChangeType(${i}, this.value)">${typeOpts}</select>
+        ${valueCell}
+        <label class="qb-negate-label" title="Exclude / NOT this condition">
+          <input type="checkbox"${c.negate ? ' checked' : ''} onchange="qbToggleNegate(${i}, this.checked)"> NOT
+        </label>
+        <button type="button" class="btn btn-danger btn-sm qb-remove" onclick="qbRemoveCondition(${i})">✕</button>
+      </div>`;
+  }).join('');
+  _qbSync();
+}
+
+function _qbParseQuery(query) {
+  if (!query) return [];
+  const tokens = query.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+  const conditions = [];
+  let nextJoin = 'AND';
+  for (const t of tokens) {
+    if (t.toUpperCase() === 'OR') { nextJoin = 'OR'; continue; }
+    const negate = t.startsWith('-');
+    const token = negate ? t.slice(1) : t;
+    let matched = false;
+    for (const def of QB_TYPES) {
+      if (def.id === 'custom') continue;
+      if (def.noValue && token === def.op) {
+        conditions.push({ type: def.id, value: '', negate, join: nextJoin });
+        matched = true; break;
+      }
+      if (!def.noValue && token.startsWith(def.op)) {
+        let val = token.slice(def.op.length);
+        if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
+        conditions.push({ type: def.id, value: val, negate, join: nextJoin });
+        matched = true; break;
+      }
+    }
+    if (!matched) conditions.push({ type: 'custom', value: token, negate, join: nextJoin });
+    nextJoin = 'AND';
+  }
+  return conditions;
+}
+
+function qbInit(existingQuery) {
+  _qbConditions = _qbParseQuery(existingQuery);
+  if (_qbConditions.length === 0) _qbConditions.push({ type: 'has_attachment', value: '', negate: false, join: 'AND' });
+  _qbRender();
+}
+
 // ─────────────────────────── RULES ───────────────────────────
 
 async function renderRules() {
@@ -305,7 +452,17 @@ async function showRuleForm(id) {
     <div class="modal-title">${id ? 'Edit' : 'Add'} Rule</div>
     <form id="rule-form" onsubmit="submitRule(event, ${id || 'null'})">
       <div class="form-group"><label>Label</label><input name="label" value="${esc(rule?.label || '')}" required /></div>
-      <div class="form-group"><label>Gmail Query</label><input name="gmail_query" value="${esc(rule?.gmail_query || '')}" placeholder="has:attachment newer_than:30d" required /></div>
+      <div class="form-group">
+        <label>Gmail Query</label>
+        <div class="qb-builder">
+          <div id="qb-rows"></div>
+          <button type="button" class="btn btn-secondary btn-sm qb-add" onclick="qbAddCondition()">+ Add condition</button>
+        </div>
+        <div class="qb-raw-wrap">
+          <span class="qb-raw-label">Generated query</span>
+          <input name="gmail_query" value="${esc(rule?.gmail_query || '')}" placeholder="has:attachment newer_than:30d" required />
+        </div>
+      </div>
       <div class="form-group"><label>Subfolder Template</label><input name="subfolder_template" value="${esc(rule?.subfolder_template || '')}" placeholder="{year}/{month}/{sender}" /></div>
       <div class="form-group">
         <div class="form-check">
@@ -336,6 +493,8 @@ async function showRuleForm(id) {
         <button type="submit" class="btn btn-primary">${id ? 'Update' : 'Create'}</button>
       </div>
     </form>`);
+
+  qbInit(rule?.gmail_query || '');
 }
 
 async function previewQuery() {
@@ -657,9 +816,34 @@ async function renderSettings() {
   const content = document.getElementById('main-content');
   try {
     const settings = await api('/api/settings');
+    const secretSet = settings.google_client_secret === '****';
     content.innerHTML = `
       <div class="page-header"><h2>Settings</h2></div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h3 style="margin:0 0 12px">Google OAuth</h3>
+        <form id="oauth-form" onsubmit="submitOAuthSettings(event)">
+          <div class="form-group">
+            <label>Client ID</label>
+            <input name="google_client_id" value="${esc(settings.google_client_id || '')}" placeholder="paste your Google OAuth Client ID" />
+          </div>
+          <div class="form-group">
+            <label>Client Secret${secretSet ? ' <span class="badge badge-green">configured</span>' : ''}</label>
+            <input name="google_client_secret" type="password"
+              placeholder="${secretSet ? 'leave blank to keep existing secret' : 'paste your Google OAuth Client Secret'}" />
+          </div>
+          <div class="form-group">
+            <label>OAuth Redirect URL</label>
+            <input name="google_redirect_url" value="${esc(settings.google_redirect_url || '')}" placeholder="http://localhost:8080/oauth/callback" />
+          </div>
+          <div class="modal-footer" style="border:none;padding:0;margin-top:10px">
+            <button type="submit" class="btn btn-primary">Save OAuth Settings</button>
+          </div>
+        </form>
+      </div>
+
       <div class="card">
+        <h3 style="margin:0 0 12px">General</h3>
         <form id="settings-form" onsubmit="submitSettings(event)">
           <div class="form-group">
             <label>Database URL <span style="color:#888;font-size:11px">(read-only)</span></label>
@@ -680,6 +864,25 @@ async function renderSettings() {
       </div>`;
   } catch (e) {
     content.innerHTML = `<div class="card"><p style="color:red">Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+async function submitOAuthSettings(e) {
+  e.preventDefault();
+  const f = e.target;
+  const body = {
+    google_client_id: f.google_client_id.value,
+    google_redirect_url: f.google_redirect_url.value,
+  };
+  // Only include secret if the user typed something new.
+  const secret = f.google_client_secret.value;
+  if (secret) body.google_client_secret = secret;
+  try {
+    await api('/api/settings', { method: 'PUT', body: JSON.stringify(body) });
+    showToast('OAuth settings saved.', 'success');
+    renderSettings();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
   }
 }
 

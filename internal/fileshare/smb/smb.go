@@ -3,7 +3,9 @@ package smb
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -11,22 +13,60 @@ import (
 	"github.com/hirochachacha/go-smb2"
 )
 
+// smbFS abstracts the methods of *smb2.Share used by this package.
+type smbFS interface {
+	ReadDir(name string) ([]os.FileInfo, error)
+	MkdirAll(path string, perm os.FileMode) error
+	Create(name string) (io.ReadWriteCloser, error)
+	Umount() error
+}
+
+// smbSess abstracts the methods of *smb2.Session used by this package.
+type smbSess interface {
+	Logoff() error
+}
+
+// realSMBShare wraps *smb2.Share to satisfy smbFS (adapts Create's return type).
+type realSMBShare struct{ s *smb2.Share }
+
+func (r *realSMBShare) ReadDir(name string) ([]os.FileInfo, error)     { return r.s.ReadDir(name) }
+func (r *realSMBShare) MkdirAll(path string, perm os.FileMode) error   { return r.s.MkdirAll(path, perm) }
+func (r *realSMBShare) Create(name string) (io.ReadWriteCloser, error) { return r.s.Create(name) }
+func (r *realSMBShare) Umount() error                                   { return r.s.Umount() }
+
 // SMB implements fileshare.FileShare for SMB shares.
 type SMB struct {
 	host     string
 	share    string
 	username string
 	password string
-	conn     net.Conn
-	session  *smb2.Session
-	fs       *smb2.Share
+	conn     io.Closer
+	session  smbSess
+	fs       smbFS
+	// dialFn is injected for tests; nil means use the real SMB2 dialer.
+	dialFn func(ctx context.Context) (io.Closer, smbSess, smbFS, error)
 }
 
 func New(host, share, username, password string) *SMB {
 	return &SMB{host: host, share: share, username: username, password: password}
 }
 
+// withDialer replaces the connection function — used in tests.
+func (s *SMB) withDialer(fn func(ctx context.Context) (io.Closer, smbSess, smbFS, error)) *SMB {
+	s.dialFn = fn
+	return s
+}
+
 func (s *SMB) connect(ctx context.Context) error {
+	if s.dialFn != nil {
+		conn, sess, fs, err := s.dialFn(ctx)
+		if err != nil {
+			return err
+		}
+		s.conn, s.session, s.fs = conn, sess, fs
+		return nil
+	}
+	// real SMB2 implementation
 	d := net.Dialer{Timeout: 10 * time.Second}
 	conn, err := d.DialContext(ctx, "tcp", s.host+":445")
 	if err != nil {
@@ -43,7 +83,7 @@ func (s *SMB) connect(ctx context.Context) error {
 		conn.Close()
 		return fmt.Errorf("smb dial: %w", err)
 	}
-	fs, err := sess.Mount(s.share)
+	rawFS, err := sess.Mount(s.share)
 	if err != nil {
 		sess.Logoff()
 		conn.Close()
@@ -51,7 +91,7 @@ func (s *SMB) connect(ctx context.Context) error {
 	}
 	s.conn = conn
 	s.session = sess
-	s.fs = fs
+	s.fs = &realSMBShare{s: rawFS}
 	return nil
 }
 
@@ -78,6 +118,7 @@ func (s *SMB) Write(ctx context.Context, relPath string, data []byte) error {
 			continue
 		}
 		cur = cur + "\\" + p
+
 		_ = s.fs.MkdirAll(strings.TrimPrefix(cur, "\\"), 0755)
 	}
 	f, err := s.fs.Create(filepath.ToSlash(relPath))

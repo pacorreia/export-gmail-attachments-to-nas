@@ -11,7 +11,7 @@ import (
 	"github.com/pacorreia/export-gmail-attachments-to-nas/internal/web/handlers"
 )
 
-//go:embed static
+//go:embed frontend/dist
 var staticFiles embed.FS
 
 // NewRouter builds and returns the HTTP router.
@@ -19,6 +19,8 @@ func NewRouter() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
+
+	r.Get("/health", handlers.Health)
 
 	r.Get("/oauth/callback", gmail.CallbackHandler)
 
@@ -30,6 +32,8 @@ func NewRouter() http.Handler {
 
 		r.Get("/fileshares", handlers.ListFileShares)
 		r.Post("/fileshares", handlers.CreateFileShare)
+		r.Post("/fileshares/test", handlers.TestFileShareInline)
+		r.Put("/fileshares/{id}", handlers.UpdateFileShare)
 		r.Delete("/fileshares/{id}", handlers.DeleteFileShare)
 		r.Post("/fileshares/{id}/test", handlers.TestFileShare)
 
@@ -38,6 +42,9 @@ func NewRouter() http.Handler {
 		r.Put("/rules/{id}", handlers.UpdateRule)
 		r.Delete("/rules/{id}", handlers.DeleteRule)
 		r.Get("/rules/{id}/assignments", handlers.GetRuleAssignments)
+		r.Post("/rules/{id}/execute", handlers.ExecuteRule)
+		r.Patch("/rules/{id}/toggle", handlers.ToggleRule)
+		r.Delete("/rules/{id}/checkpoint", handlers.ResetRuleCheckpoint)
 
 		r.Get("/plugins", handlers.ListPlugins)
 		r.Post("/plugins", handlers.CreatePlugin)
@@ -51,7 +58,7 @@ func NewRouter() http.Handler {
 		r.Put("/settings", handlers.UpdateSettings)
 	})
 
-	staticFS, _ := fs.Sub(staticFiles, "static")
+	staticFS, _ := fs.Sub(staticFiles, "frontend/dist")
 	r.Handle("/*", http.FileServer(http.FS(staticFS)))
 
 	return r

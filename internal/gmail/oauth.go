@@ -22,27 +22,35 @@ import (
 const gmailScope = gmailv1.MailGoogleComScope
 
 var (
-	oauthOnce     sync.Once
-	oauthCfg      *oauth2.Config
 	statesMu      sync.Mutex
 	pendingStates = map[string]time.Time{}
 )
 
+// oauthConfig builds the OAuth2 config fresh on every call so that credentials
+// saved through the Settings page take effect without a restart.
 func oauthConfig() *oauth2.Config {
-	oauthOnce.Do(func() {
-		redirectURL := os.Getenv("OAUTH_REDIRECT_URL")
-		if redirectURL == "" {
-			redirectURL = "http://localhost:8080/oauth/callback"
+	clientID := db.GetSetting("google_client_id", os.Getenv("GOOGLE_CLIENT_ID"))
+
+	// The secret is stored encrypted; fall back to the env var.
+	clientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	if enc := db.GetSetting("google_client_secret", ""); enc != "" {
+		if dec, err := crypto.Decrypt(enc); err == nil {
+			clientSecret = dec
 		}
-		oauthCfg = &oauth2.Config{
-			ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-			ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-			RedirectURL:  redirectURL,
-			Scopes:       []string{gmailScope},
-			Endpoint:     google.Endpoint,
-		}
-	})
-	return oauthCfg
+	}
+
+	redirectURL := db.GetSetting("google_redirect_url", os.Getenv("OAUTH_REDIRECT_URL"))
+	if redirectURL == "" {
+		redirectURL = "http://localhost:8080/oauth/callback"
+	}
+
+	return &oauth2.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURL:  redirectURL,
+		Scopes:       []string{gmailScope},
+		Endpoint:     google.Endpoint,
+	}
 }
 
 // StartOAuth returns the Google consent URL.
@@ -120,8 +128,8 @@ func CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, `<html><body><h2>Account added! You can close this tab.</h2></body></html>`)
 }
 
-// GmailServiceForAccount returns an authenticated Gmail API service for the given account.
-func GmailServiceForAccount(ctx context.Context, acct *models.Account) (*gmailv1.Service, error) {
+// GmailServiceForAccount returns an authenticated Gmail Client for the given account.
+func GmailServiceForAccount(ctx context.Context, acct *models.Account) (Client, error) {
 	cfg := oauthConfig()
 	dec, err := crypto.Decrypt(acct.TokenJSON)
 	if err != nil {
@@ -131,7 +139,11 @@ func GmailServiceForAccount(ctx context.Context, acct *models.Account) (*gmailv1
 	if err := json.Unmarshal([]byte(dec), &token); err != nil {
 		return nil, fmt.Errorf("parse token: %w", err)
 	}
-	return gmailService(ctx, cfg, &token)
+	svc, err := gmailService(ctx, cfg, &token)
+	if err != nil {
+		return nil, err
+	}
+	return NewClient(svc), nil
 }
 
 func gmailService(ctx context.Context, cfg *oauth2.Config, token *oauth2.Token) (*gmailv1.Service, error) {
