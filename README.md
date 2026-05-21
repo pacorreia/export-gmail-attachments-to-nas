@@ -41,6 +41,7 @@ Open **http://localhost:8080** in your browser.
 |---|---|---|---|
 | `SECRET_KEY` | ✅ | — | Encryption key for OAuth tokens and passwords (AES-256-GCM). The service will not start without it. |
 | `DATABASE_URL` | ❌ | `sqlite:///data/app.db` | Database connection string. Prefix: `sqlite://`, `postgres://`, or `sqlserver://`. |
+| `PORT` | ❌ | `8080` | HTTP port the server listens on. |
 | `GOOGLE_CLIENT_ID` | ✅ | — | Google Cloud OAuth2 client ID |
 | `GOOGLE_CLIENT_SECRET` | ✅ | — | Google Cloud OAuth2 client secret |
 | `OAUTH_REDIRECT_URL` | ❌ | `http://localhost:8080/oauth/callback` | OAuth2 redirect URI (must match the Google Cloud console setting) |

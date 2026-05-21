@@ -1,28 +1,36 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+# govulncheck scans Go code for known vulnerabilities using the Go vulnerability database.
+# https://pkg.go.dev/golang.org/x/vuln/cmd/govulncheck
 
-# Bandit is a security linter designed to find common security issues in Python code.
-# This action will run Bandit on your codebase.
-# The results of the scan will be found under the Security tab of your repository.
+name: Security
 
-# https://github.com/marketplace/actions/bandit-scan is ISC licensed, by abirismyname
-# https://pypi.org/project/bandit/ is Apache v2.0 licensed, by PyCQA
-
-name: Bandit
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - '**.py'
   pull_request:
-    # The branches below must be a subset of the branches above
     branches: [ "main" ]
-    paths:
-      - '**.py'
   schedule:
     - cron: '21 23 * * 0'
+
+jobs:
+  govulncheck:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run govulncheck
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-file: go.mod
+          go-package: ./...
 
 jobs:
   bandit:
