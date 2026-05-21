@@ -45,6 +45,12 @@ jobs:
       - name: Coverage summary
         run: go tool cover -func=coverage.out | tail -1
 
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage.out
+
       - name: Coverage report (PR comment)
         if: github.event_name == 'pull_request'
         uses: fgrosse/go-coverage-report@v1.2.0
