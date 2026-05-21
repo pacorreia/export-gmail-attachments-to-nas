@@ -166,3 +166,14 @@ cython_debug/
 
 .vscode/
 docs/_build/
+
+# Go
+/server
+coverage.out
+*.test
+
+# Node.js / frontend
+node_modules/
+
+# Application runtime data (SQLite database, etc.)
+data/

@@ -16,6 +16,21 @@ type PageImage struct {
 	Data []byte
 }
 
+// Converter abstracts PDF-to-image conversion for testability.
+type Converter interface {
+	ConvertToImages(ctx context.Context, name string, data []byte, dpi int) ([]PageImage, error)
+}
+
+// FuncConverter adapts a bare function to the Converter interface.
+type FuncConverter func(ctx context.Context, name string, data []byte, dpi int) ([]PageImage, error)
+
+func (f FuncConverter) ConvertToImages(ctx context.Context, name string, data []byte, dpi int) ([]PageImage, error) {
+	return f(ctx, name, data, dpi)
+}
+
+// Default is the real pdftoppm-backed Converter.
+var Default Converter = FuncConverter(ConvertToImages)
+
 // ConvertToImages converts a PDF file (given as bytes) to PNG images using pdftoppm.
 // Returns a slice of PageImage, one per page.
 func ConvertToImages(ctx context.Context, originalName string, data []byte, dpi int) ([]PageImage, error) {

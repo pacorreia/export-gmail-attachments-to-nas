@@ -48,12 +48,12 @@ func PreviewGmailQuery(w http.ResponseWriter, r *http.Request) {
 		writeError(w, "account not found", http.StatusNotFound)
 		return
 	}
-	svc, err := gmail.GmailServiceForAccount(r.Context(), &acct)
+	client, err := gmail.GmailServiceForAccount(r.Context(), &acct)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	ids, err := gmail.SearchMessages(r.Context(), svc, req.Query)
+	ids, err := client.SearchMessages(r.Context(), req.Query)
 	if err != nil {
 		writeError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -70,7 +70,7 @@ func PreviewGmailQuery(w http.ResponseWriter, r *http.Request) {
 	}
 	var results []preview
 	for _, id := range ids[:limit] {
-		msg, err := gmail.FetchMessage(r.Context(), svc, id)
+		msg, err := client.FetchMessage(r.Context(), id)
 		if err != nil {
 			continue
 		}
