@@ -13,6 +13,7 @@ on:
 
 jobs:
   govulncheck:
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'dependabot/github_actions/')
     runs-on: ubuntu-latest
     permissions:
       contents: read
