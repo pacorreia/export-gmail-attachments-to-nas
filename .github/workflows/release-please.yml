@@ -23,6 +23,71 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  binaries:
+    name: Publish Binaries
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            ext: ""
+          - os: linux
+            arch: arm64
+            ext: ""
+          - os: darwin
+            arch: amd64
+            ext: ""
+          - os: darwin
+            arch: arm64
+            ext: ""
+          - os: windows
+            arch: amd64
+            ext: .exe
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: internal/web/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: internal/web/frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: internal/web/frontend
+
+      - name: Build binary
+        env:
+          CGO_ENABLED: 0
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p dist
+          go build -o "dist/export-gmail-attachments-to-nas-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}" ./cmd/server
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.release-please.outputs.tag_name }}
+          files: dist/export-gmail-attachments-to-nas-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.ext }}
+
   docker:
     name: Publish Docker Image
     needs: release-please
