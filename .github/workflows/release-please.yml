@@ -31,7 +31,6 @@ jobs:
     permissions:
       contents: write
     strategy:
-      fail-fast: false
       matrix:
         include:
           - os: linux
