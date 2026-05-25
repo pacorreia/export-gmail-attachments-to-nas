@@ -4,7 +4,7 @@ go 1.25.0
 
 require (
 	github.com/glebarez/sqlite v1.11.0
-	github.com/go-chi/chi/v5 v5.2.5
+	github.com/go-chi/chi/v5 v5.3.0
 	github.com/hirochachacha/go-smb2 v1.1.0
 	golang.org/x/oauth2 v0.36.0
 	google.golang.org/api v0.280.0
