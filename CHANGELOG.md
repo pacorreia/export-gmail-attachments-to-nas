@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.1.2](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/v1.1.1...v1.1.2) (2026-05-25)
+
+
+### Bug Fixes
+
+* **security:** bump golang.org/x/net to v0.55.0 ([faeb5bc](https://github.com/pacorreia/export-gmail-attachments-to-nas/commit/faeb5bcfe9e133b2ab40284d356863375bfc6018))
+
+
+### Reverts
+
+* remove unrelated Go dependency bumps ([b5dab0b](https://github.com/pacorreia/export-gmail-attachments-to-nas/commit/b5dab0b6d7f3446f308e20491fc47763afaa7182))
+
 ## [1.1.1](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/v1.1.0...v1.1.1) (2026-05-21)
 
 
