@@ -1,13 +1,13 @@
 module github.com/pacorreia/export-gmail-attachments-to-nas
 
-go 1.25.0
+go 1.25.8
 
 require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-chi/chi/v5 v5.3.0
 	github.com/hirochachacha/go-smb2 v1.1.0
 	golang.org/x/oauth2 v0.36.0
-	google.golang.org/api v0.280.0
+	google.golang.org/api v0.283.0
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/driver/sqlserver v1.6.3
 	gorm.io/gorm v1.31.1
@@ -28,7 +28,7 @@ require (
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.3.15 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.16 // indirect
 	github.com/googleapis/gax-go/v2 v2.22.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
@@ -49,7 +49,7 @@ require (
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260511170946-3700d4141b60 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260523011958-0a33c5d7ca68 // indirect
 	google.golang.org/grpc v1.81.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	modernc.org/libc v1.22.5 // indirect
