@@ -20,10 +20,10 @@ jobs:
       security-events: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
@@ -42,7 +42,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Bandit Scan
         uses: shundor/python-bandit-scan@ab1d87dfccc5a0ffab88be3aaac6ffe35c10d6cd
         with: # optional arguments
@@ -64,7 +64,7 @@ jobs:
           # ini_path: # optional, default is DEFAULT
 
       - name: SARIF Courier
-        uses: falc0nTech/SARIFCourier@856cf3aa13a2e424931598f322a56055bb8ee9c6
+        uses: falc0nTech/SARIFCourier@e9f22a8d0e9155c3166f24c820c128efd257218b
         with:
           # Path to the SARIF file to process.
           sarif_file: ./results.sarif # default is results.sarif
