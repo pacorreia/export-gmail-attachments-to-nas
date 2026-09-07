@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/cloudsoda/go-smb2 v0.0.0-20260803221621-0b399b9d036c
 	github.com/glebarez/sqlite v1.11.0
-	github.com/go-chi/chi/v5 v5.3.1
+	github.com/go-chi/chi/v5 v5.3.2
 	golang.org/x/oauth2 v0.36.0
 	google.golang.org/api v0.297.0
 	gorm.io/driver/postgres v1.6.2
