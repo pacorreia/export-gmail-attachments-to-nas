@@ -78,7 +78,7 @@ func (s *SMB) connect(ctx context.Context) error {
 			Password: s.password,
 		},
 	}
-	sess, err := dialer.DialContext(ctx, conn)
+	sess, err := dialer.DialConn(ctx, conn, s.host)
 	if err != nil {
 		conn.Close()
 		return fmt.Errorf("smb dial: %w", err)
