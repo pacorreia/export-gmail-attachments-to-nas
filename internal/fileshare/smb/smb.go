@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hirochachacha/go-smb2"
+	"github.com/cloudsoda/go-smb2"
 )
 
 // smbFS abstracts the methods of *smb2.Share used by this package.
