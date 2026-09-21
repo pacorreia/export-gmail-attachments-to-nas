@@ -7,7 +7,7 @@ require (
 	github.com/glebarez/sqlite v1.11.0
 	github.com/go-chi/chi/v5 v5.3.2
 	golang.org/x/oauth2 v0.36.0
-	google.golang.org/api v0.297.0
+	google.golang.org/api v0.298.0
 	gorm.io/driver/postgres v1.6.2
 	gorm.io/driver/sqlserver v1.6.4
 	gorm.io/gorm v1.31.2
