@@ -48,7 +48,9 @@ jobs:
             exit 0
           fi
 
-          if [[ "$HEAD_COMMIT_MESSAGE" =~ ^chore\(main\):\ release\ (.+)$ ]]; then
+          head_commit_subject="${HEAD_COMMIT_MESSAGE%%$'\n'*}"
+
+          if [[ "$head_commit_subject" =~ ^chore\(main\):\ release\ (.+)$ ]]; then
             tag_name="${BASH_REMATCH[1]}"
             if [[ "$tag_name" != v* ]]; then
               tag_name="v${tag_name}"
