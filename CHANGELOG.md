@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.3](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/v1.1.2...v1.1.3) (2026-09-28)
+
+
+### Bug Fixes
+
+* Merge pull request [#231](https://github.com/pacorreia/export-gmail-attachments-to-nas/issues/231) from pacorreia/dependabot/npm_and_yarn/internal/web/frontend/vite-8.3.1 ([a6d33cf](https://github.com/pacorreia/export-gmail-attachments-to-nas/commit/a6d33cfcb8ed1605accac4b5ced2d1a5009de72f))
+
 ## [1.1.2](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/v1.1.1...v1.1.2) (2026-05-25)
 
 
