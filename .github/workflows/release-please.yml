@@ -19,15 +19,50 @@ jobs:
     name: Release Please
     runs-on: ubuntu-latest
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
+      release_created: ${{ steps.release-result.outputs.release_created }}
+      tag_name: ${{ steps.release-result.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
         if: github.event_name == 'push'
         id: release
+        continue-on-error: true
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+      - name: Resolve release outputs
+        if: github.event_name == 'push'
+        id: release-result
+        env:
+          RELEASE_OUTCOME: ${{ steps.release.outcome }}
+          RELEASE_CREATED: ${{ steps.release.outputs.release_created }}
+          RELEASE_TAG_NAME: ${{ steps.release.outputs.tag_name }}
+          HEAD_COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ "$RELEASE_OUTCOME" = "success" ]; then
+            echo "release_created=${RELEASE_CREATED:-false}" >> "$GITHUB_OUTPUT"
+            echo "tag_name=${RELEASE_TAG_NAME:-}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ "$HEAD_COMMIT_MESSAGE" =~ ^chore\(main\):\ release\ (.+)$ ]]; then
+            tag_name="${BASH_REMATCH[1]}"
+            if [[ "$tag_name" != v* ]]; then
+              tag_name="v${tag_name}"
+            fi
+
+            if gh api "repos/${{ github.repository }}/releases/tags/${tag_name}" >/tmp/release.json 2>/tmp/release.err; then
+              echo "release_created=true" >> "$GITHUB_OUTPUT"
+              echo "tag_name=${tag_name}" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          echo "release-please failed and no existing release could be resolved." >&2
+          exit 1
 
   get-tag:
     name: Resolve Release Tag
