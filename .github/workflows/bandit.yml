@@ -64,7 +64,7 @@ jobs:
           # ini_path: # optional, default is DEFAULT
 
       - name: SARIF Courier
-        uses: falc0nTech/SARIFCourier@e9f22a8d0e9155c3166f24c820c128efd257218b
+        uses: falc0nTech/SARIFCourier@5f5e90a6efcfb9eb8740b71243e4aad9b4e1398a
         with:
           # Path to the SARIF file to process.
           sarif_file: ./results.sarif # default is results.sarif
