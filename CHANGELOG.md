@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.5](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/v1.1.4...v1.1.5) (2026-10-09)
+
+
+### Bug Fixes
+
+* handle duplicate release tags in release workflow ([06e0685](https://github.com/pacorreia/export-gmail-attachments-to-nas/commit/06e0685d16e682480dae96c5be36ee756a22dde7))
+* handle multiline release commit messages ([e70d5da](https://github.com/pacorreia/export-gmail-attachments-to-nas/commit/e70d5dae7bf1ceda04bb6f84e92ad9113ad841d3))
+* Merge pull request [#231](https://github.com/pacorreia/export-gmail-attachments-to-nas/issues/231) from pacorreia/dependabot/npm_and_yarn/internal/web/frontend/vite-8.3.1 ([a6d33cf](https://github.com/pacorreia/export-gmail-attachments-to-nas/commit/a6d33cfcb8ed1605accac4b5ced2d1a5009de72f))
+
 ## [1.1.4](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/v1.1.3...v1.1.4) (2026-09-28)
 
 
