@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.6](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/v1.1.5...v1.1.6) (2026-10-22)
+
+
+### Bug Fixes
+
+* deps(go): Bump google.golang.org/api from 0.300.0 to 0.305.0 ([#245](https://github.com/pacorreia/export-gmail-attachments-to-nas/issues/245)) ([fbb5465](https://github.com/pacorreia/export-gmail-attachments-to-nas/commit/fbb54654456435a897ebf34ce165740bb3645f7f))
+
 ## [1.1.5](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/v1.1.4...v1.1.5) (2026-10-09)
 
 
