@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.7](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/v1.1.6...v1.1.7) (2026-11-15)
+
+
+### Bug Fixes
+
+* **security:** container autofix for export-gmail-attachments-to-nas ([1213865](https://github.com/pacorreia/export-gmail-attachments-to-nas/commit/1213865c5296f34ede978272709c293545728dbc))
+* **security:** update dependencies ([7140add](https://github.com/pacorreia/export-gmail-attachments-to-nas/commit/7140add9341f33d3e60f18de7122133dd1d28196))
+
 ## [1.1.6](https://github.com/pacorreia/export-gmail-attachments-to-nas/compare/v1.1.5...v1.1.6) (2026-10-22)
 
 
